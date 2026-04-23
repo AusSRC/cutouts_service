@@ -20,7 +20,7 @@ def test_parse_file_source_for_path(tmp_path: Path) -> None:
     assert source_value == str(test_file.resolve())
 
 
-def test_main_prints_expected_values(tmp_path: Path, capsys) -> None:
+def test_main_outputs_parsed_arguments(tmp_path: Path, capsys) -> None:
     test_file = tmp_path / "catalog.fits"
     test_file.write_text("data")
 

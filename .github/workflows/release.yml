@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install build dependencies
+        run: pip install .[dev]
+      - name: Build package artifacts
+        run: python -m build
+      - name: Upload package artifacts to artifact registry
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-artifacts
+          path: dist/

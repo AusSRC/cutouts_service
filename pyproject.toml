@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools==78.1.1", "wheel==0.46.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cutouts-service"
+version = "0.1.0"
+description = "A basic CLI scaffold for cutouts requests."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "AusSRC" }]
+dependencies = []
+
+[project.scripts]
+cutouts-service = "cutouts_service.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "ruff==0.11.6",
+  "pytest==8.3.5",
+  "build==1.2.2.post1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

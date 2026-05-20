@@ -1,5 +1,3 @@
-import pytest
-
 from cutouts_service.cli import build_parser
 from cutouts_service.fits_utils import is_remote_source
 

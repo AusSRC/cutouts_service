@@ -26,3 +26,7 @@ cutouts-service 180.0 -30.0 0.1 ./file.fits
 ```
 
 The CLI currently accepts `ra`, `dec`, `radius`, and a `file` input (URL or path), and prints the parsed request parameters.
+
+## Contributing
+
+See [contributing.md](contributing.md) for developer environment setup, uv workflow, and dependency policy.

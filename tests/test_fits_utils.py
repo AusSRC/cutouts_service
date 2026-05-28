@@ -1,23 +1,18 @@
 import numpy as np
 import pytest
 from astropy.io import fits
-from astropy.wcs import WCS
 
 from cutouts_service.fits_utils import build_cutout_header, open_fits_source
 from cutouts_service.fits_utils import is_remote_source
 
 
-def _make_source_header(*, shape: tuple[int, int] = (20, 20)) -> fits.Header:
-    data = np.arange(shape[0] * shape[1], dtype=np.float32).reshape(shape)
-    wcs = WCS(naxis=2)
-    wcs.wcs.crpix = [shape[1] / 2 + 0.5, shape[0] / 2 + 0.5]
-    wcs.wcs.cdelt = np.array([-0.5, 0.5])
-    wcs.wcs.crval = [180.0, -30.0]
-    wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
-    return fits.PrimaryHDU(data=data, header=wcs.to_header()).header
+def test_open_fits_source_opens_remote_http_source(remote_fits_2d) -> None:
+    with open_fits_source(remote_fits_2d["url"]) as hdul:
+        assert len(hdul) == 1
+        assert hdul[0].data is not None
 
 
-def test_open_fits_source_uses_fsspec_for_remote_urls(monkeypatch) -> None:
+def test_open_fits_source_sets_s3_endpoint_url_in_fsspec_kwargs(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
     class DummyContext:
@@ -34,11 +29,21 @@ def test_open_fits_source_uses_fsspec_for_remote_urls(monkeypatch) -> None:
 
     monkeypatch.setattr("cutouts_service.fits_utils.fits.open", fake_open)
 
-    with open_fits_source("https://example.com/catalog.fits"):
+    with open_fits_source(
+        "s3://bucket/catalog.fits",
+        s3_endpoint_url="https://objects.example.org",
+    ):
         pass
 
-    assert captured["source"] == "https://example.com/catalog.fits"
-    assert captured["kwargs"] == {"use_fsspec": True, "lazy_load_hdus": True}
+    assert captured["source"] == "s3://bucket/catalog.fits"
+    assert captured["kwargs"] == {
+        "use_fsspec": True,
+        "lazy_load_hdus": True,
+        "fsspec_kwargs": {
+            "anon": True,
+            "client_kwargs": {"endpoint_url": "https://objects.example.org"},
+        },
+    }
 
 
 def test_open_fits_source_rejects_local_files() -> None:
@@ -47,12 +52,11 @@ def test_open_fits_source_rejects_local_files() -> None:
             pass
 
 
-def test_build_cutout_header_updates_spatial_axes() -> None:
-    source_header = _make_source_header()
+def test_build_cutout_header_updates_spatial_axes(source_header_2d: fits.Header) -> None:
     slices = (slice(2, 6), slice(3, 7))
 
     cutout_header = build_cutout_header(
-        source_header,
+        source_header_2d,
         slices,
         (4, 4),
         np.dtype("float32"),
@@ -60,8 +64,8 @@ def test_build_cutout_header_updates_spatial_axes() -> None:
 
     assert cutout_header["NAXIS1"] == 4
     assert cutout_header["NAXIS2"] == 4
-    assert cutout_header["CRPIX1"] == source_header["CRPIX1"] - 3
-    assert cutout_header["CRPIX2"] == source_header["CRPIX2"] - 2
+    assert cutout_header["CRPIX1"] == source_header_2d["CRPIX1"] - 3
+    assert cutout_header["CRPIX2"] == source_header_2d["CRPIX2"] - 2
     assert cutout_header["BITPIX"] == -32
 
 

@@ -11,9 +11,10 @@ requires-python = ">=3.11"
 authors = [{ name = "AusSRC" }]
 dependencies = [
   "astropy>=7.0",
-  "fsspec>=2024.6.1",
+  "fsspec[http]>=2024.6.1",
   "numpy>=2.4.6",
   "validators>=0.35.0",
+  "s3fs>=2025.3.2"
 ]
 
 [project.scripts]

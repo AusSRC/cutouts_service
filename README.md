@@ -23,9 +23,12 @@ make test
 ```bash
 cutouts-service 180.0 -30.0 0.1 https://example.com/file.fits --output cutout.fits
 cutouts-service 180.0 -30.0 0.1 s3://example-bucket/file.fits --output cutout.fits
+cutouts-service 180.0 -30.0 0.1 s3://example-bucket/file.fits --s3-endpoint-url https://objects.example.org --output cutout.fits
 ```
 
 The CLI accepts `ra`, `dec`, `radius`, a remote FITS URL input (`http`, `https`, or `s3`), and a required `--output` path. It uses Astropy to extract a sky cutout from the source FITS file and writes the resulting FITS file to disk.
+
+For S3-compatible object stores, pass `--s3-endpoint-url` to route `s3://` requests to a custom endpoint.
 
 ## Contributing
 

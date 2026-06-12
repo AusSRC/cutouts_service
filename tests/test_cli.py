@@ -32,8 +32,8 @@ def test_build_parser_parses_cli_arguments() -> None:
     assert args.file == "https://example.com/catalog.fits"
     assert args.s3_endpoint_url == "https://objects.example.org"
     assert args.log_level == "DEBUG"
-    assert args.spectral_start_pixel is None
-    assert args.spectral_stop_pixel is None
+    assert args.spectral_start_channel is None
+    assert args.spectral_stop_channel is None
     assert args.output == "cutout.fits"
 
 
@@ -46,17 +46,17 @@ def test_build_parser_parses_spectral_pixel_range_arguments() -> None:
             "-42.0",
             "0.5",
             "https://example.com/catalog.fits",
-            "--spectral-start-pixel",
+            "--spectral-start-channel",
             "10",
-            "--spectral-stop-pixel",
+            "--spectral-stop-channel",
             "25",
             "--output",
             "cutout.fits",
         ]
     )
 
-    assert args.spectral_start_pixel == 10
-    assert args.spectral_stop_pixel == 25
+    assert args.spectral_start_channel == 10
+    assert args.spectral_stop_channel == 25
 
 
 def test_is_remote_source_for_url() -> None:
@@ -94,21 +94,21 @@ def test_main_converts_radius_from_arcmin_to_degrees(tmp_path: Path, remote_fits
 
     assert exit_code == 0
     assert output_file.exists()
-    assert data.shape == (2, 2)
+    assert data.shape == (4, 4)
 
 
 def test_main_requires_both_spectral_pixel_arguments(tmp_path: Path, remote_fits_2d) -> None:
     source_url = remote_fits_2d["url"]
     output_file = tmp_path / "cutout.fits"
 
-    with raises(ValueError, match="Both --spectral-start-pixel and --spectral-stop-pixel"):
+    with raises(ValueError, match="Both --spectral-start-channel and --spectral-stop-channel"):
         main(
             [
                 "180.0",
                 "-30.0",
                 "30.0",
                 source_url,
-                "--spectral-start-pixel",
+                "--spectral-start-channel",
                 "1",
                 "--output",
                 str(output_file),

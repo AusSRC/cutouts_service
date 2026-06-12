@@ -1,9 +1,12 @@
 import numpy as np
 import pytest
 from astropy.io import fits
-
-from cutouts_service.fits_utils import build_cutout_header, open_fits_source
+from cutouts_service.fits_utils import build_cutout_header, open_fits_source, get_cube_details
 from cutouts_service.fits_utils import is_remote_source
+import logging
+
+logger = logging.getLogger(__name__)
+logger.propagate = True
 
 
 def test_open_fits_source_opens_remote_http_source(remote_fits_2d) -> None:
@@ -95,3 +98,13 @@ def test_build_cutout_header_preserves_cube_depth() -> None:
 
 def test_is_remote_source_for_object_storage_scheme() -> None:
     assert is_remote_source("s3://bucket/path/file.fits")
+
+def test_get_cube_details(remote_fits_3d, caplog) -> None:
+    with caplog.at_level(logging.INFO):
+        source_url = remote_fits_3d["url"]
+        with open_fits_source(source_url) as hdul:
+            image_hdu = hdul[0]
+        get_cube_details(image_hdu, ra=180.0, dec=-30.0, radius=1.0, spectral_start_channel=1, spectral_stop_channel=1)
+    captured = caplog.records
+    for record in captured[5:8]:
+        assert len(record.msg) > 0

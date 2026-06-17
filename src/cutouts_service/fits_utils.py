@@ -28,6 +28,7 @@ _DTYPE_TO_BITPIX = {
 ImageLikeHDU = fits.PrimaryHDU | fits.ImageHDU | fits.CompImageHDU
 logger = logging.getLogger(__name__)
 
+
 def is_remote_source(source: str | Path) -> bool:
     """Return whether a source should be opened through fsspec.
 
@@ -89,7 +90,9 @@ def open_fits_source(source: str | Path, s3_endpoint_url: str | None = None):
             fsspec_kwargs["client_kwargs"] = {"endpoint_url": s3_endpoint_url}
         open_kwargs["fsspec_kwargs"] = fsspec_kwargs
 
-    logger.info(f"Calling astropy.io.fits.open source={str(source)} open_kwargs={open_kwargs}")
+    logger.info(
+        f"Calling astropy.io.fits.open source={str(source)} open_kwargs={open_kwargs}"
+    )
 
     with fits.open(*open_args, **open_kwargs) as handle:
         try:
@@ -97,9 +100,7 @@ def open_fits_source(source: str | Path, s3_endpoint_url: str | None = None):
         except TypeError:
             hdu_count = None
 
-        logger.info(
-            f"FITS source opened source={str(source)} hdu_count={hdu_count}"
-        )
+        logger.info(f"FITS source opened source={str(source)} hdu_count={hdu_count}")
         yield handle
 
 
@@ -135,12 +136,17 @@ def build_cutout_header(
     ndim = len(shape)
 
     header["NAXIS"] = ndim
-    header["BITPIX"] = _DTYPE_TO_BITPIX.get(getattr(section_dtype, "name", str(section_dtype)), -64)
+    header["BITPIX"] = _DTYPE_TO_BITPIX.get(
+        getattr(section_dtype, "name", str(section_dtype)), -64
+    )
 
-    if float(source_header.get("BSCALE", 1)) != 1.0 or float(source_header.get("BZERO", 0)) != 0.0:
+    if (
+        float(source_header.get("BSCALE", 1)) != 1.0
+        or float(source_header.get("BZERO", 0)) != 0.0
+    ):
         header.remove(keyword="BSCALE", remove_all=True)
         header.remove(keyword="BZERO", remove_all=True)
-    
+
     if source_header.get("CASAMBM", False):
         logger.info("Setting CASAMBM to False, this is not present in the file")
         header.set("CASAMBM", False)
@@ -150,7 +156,7 @@ def build_cutout_header(
         start = cutout_slice.start if cutout_slice.start is not None else 0
         stop = cutout_slice.stop if cutout_slice.stop is not None else shape[numpy_axis]
 
-        naxis_key = f"NAXIS{fits_axis}" 
+        naxis_key = f"NAXIS{fits_axis}"
         previous_naxis = source_header.get(naxis_key, "undefined")
         header[naxis_key] = stop - start
         crpix_key = f"CRPIX{fits_axis}"
@@ -174,7 +180,14 @@ def build_cutout_header(
     return header
 
 
-def get_cube_details(image_hdu: ImageLikeHDU, ra: float, dec: float, radius: float, spectral_start_channel: int | None = None, spectral_stop_channel: int | None = None):
+def get_cube_details(
+    image_hdu: ImageLikeHDU,
+    ra: float,
+    dec: float,
+    radius: float,
+    spectral_start_channel: int | None = None,
+    spectral_stop_channel: int | None = None,
+):
     """Query and print key Cube details from header
 
     Parameters
@@ -205,18 +218,26 @@ def get_cube_details(image_hdu: ImageLikeHDU, ra: float, dec: float, radius: flo
     ra_dec_min = SkyCoord(ra=ra - radius, dec=dec - radius)
     ra_dec_max = SkyCoord(ra=ra + radius, dec=dec + radius)
 
-    logger.info("\n\nThe extent of the cube is:\n"
-                f"\tRA: {corners[:,0].min():.3f} -> {corners[:, 0].max():.3f}\n"
-                f"\tDec: {corners[:, 1].min():.4f} -> {corners[:, 1].max():.4f}\n"
-                f"\tYour request is to create a cutout from {ra_dec_min.to_string()} to {ra_dec_max.to_string()} (corner to corner)\n")
+    logger.info(
+        "\n\nThe extent of the cube is:\n"
+        f"\tRA: {corners[:, 0].min():.3f} -> {corners[:, 0].max():.3f}\n"
+        f"\tDec: {corners[:, 1].min():.4f} -> {corners[:, 1].max():.4f}\n"
+        f"\tYour request is to create a cutout from {ra_dec_min.to_string()} to {ra_dec_max.to_string()} (corner to corner)\n"
+    )
     if wcs.has_spectral:
         nchans = wcs.spectral.array_shape[0]
         spec_lims = wcs.spectral.pixel_to_world_values([0, nchans])
-        spec_req = wcs.spectral.pixel_to_world_values([spectral_start_channel, spectral_stop_channel])
+        spec_req = wcs.spectral.pixel_to_world_values(
+            [spectral_start_channel, spectral_stop_channel]
+        )
         spec_units = wcs.spectral.world_axis_units[0]
-        logger.info(f"\n\nThere are {nchans} channels\n"
-                    f"\tThe frequency range is {spec_lims[0]:.3e} -> {spec_lims[1]:.3e} {spec_units}\n"
-                    f"\tYour request is from channel {spectral_start_channel} ({spec_req[0]:.3e} {spec_units}) to {spectral_stop_channel} ({spec_req[1]:.3e} {spec_units})\n")
+        logger.info(
+            f"\n\nThere are {nchans} channels\n"
+            f"\tThe frequency range is {spec_lims[0]:.3e} -> {spec_lims[1]:.3e} {spec_units}\n"
+            f"\tYour request is from channel {spectral_start_channel} ({spec_req[0]:.3e} {spec_units}) to {spectral_stop_channel} ({spec_req[1]:.3e} {spec_units})\n"
+        )
     if stokes_axis is not None:
         stokes_size = wcs.array_shape[::-1][stokes_axis]
-        logger.info(f"\n\nThe STOKES axis has {stokes_size} elements, we will collect all elements\n")
+        logger.info(
+            f"\n\nThe STOKES axis has {stokes_size} elements, we will collect all elements\n"
+        )

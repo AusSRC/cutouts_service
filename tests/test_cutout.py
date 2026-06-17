@@ -23,14 +23,16 @@ def test_write_cutout_creates_output_file(tmp_path: Path, remote_fits_2d) -> Non
         data = hdul[0].data
         header = hdul[0].header
 
-    assert data.shape == (6, 6) # overestimate size (an extra pixel on each side)
+    assert data.shape == (6, 6)  # overestimate size (an extra pixel on each side)
     assert header["NAXIS1"] == 6
     assert header["NAXIS2"] == 6
     assert header["CRPIX1"] < source_header["CRPIX1"]
     assert header["CRPIX2"] < source_header["CRPIX2"]
 
 
-def test_write_cutout_preserves_cube_leading_axis(tmp_path: Path, remote_fits_3d) -> None:
+def test_write_cutout_preserves_cube_leading_axis(
+    tmp_path: Path, remote_fits_3d
+) -> None:
     output_file = tmp_path / "cutout_cube.fits"
     source_url = remote_fits_3d["url"]
 
@@ -52,7 +54,9 @@ def test_write_cutout_preserves_cube_leading_axis(tmp_path: Path, remote_fits_3d
     assert header["NAXIS3"] == 2
 
 
-def test_write_cutout_applies_spectral_axis_pixel_range(tmp_path: Path, remote_fits_3d) -> None:
+def test_write_cutout_applies_spectral_axis_pixel_range(
+    tmp_path: Path, remote_fits_3d
+) -> None:
     output_file = tmp_path / "cutout_cube_spectral_slice.fits"
     source_url = remote_fits_3d["url"]
 

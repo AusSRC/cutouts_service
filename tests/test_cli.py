@@ -66,6 +66,7 @@ def test_is_remote_source_for_url() -> None:
 def test_is_remote_source_for_s3_url() -> None:
     assert is_remote_source("s3://bucket/path/file.fits")
 
+
 def test_is_remote_source_rejects_local_path() -> None:
     assert not is_remote_source("./catalog.fits")
 
@@ -74,7 +75,9 @@ def test_is_remote_source_rejects_invalid_url_shape() -> None:
     assert not is_remote_source("https:///missing-host.fits")
 
 
-def test_main_converts_radius_from_arcmin_to_degrees(tmp_path: Path, remote_fits_2d) -> None:
+def test_main_converts_radius_from_arcmin_to_degrees(
+    tmp_path: Path, remote_fits_2d
+) -> None:
     source_url = remote_fits_2d["url"]
     output_file = tmp_path / "cutout.fits"
 
@@ -97,11 +100,15 @@ def test_main_converts_radius_from_arcmin_to_degrees(tmp_path: Path, remote_fits
     assert data.shape == (4, 4)
 
 
-def test_main_requires_both_spectral_pixel_arguments(tmp_path: Path, remote_fits_2d) -> None:
+def test_main_requires_both_spectral_pixel_arguments(
+    tmp_path: Path, remote_fits_2d
+) -> None:
     source_url = remote_fits_2d["url"]
     output_file = tmp_path / "cutout.fits"
 
-    with raises(ValueError, match="Both --spectral-start-channel and --spectral-stop-channel"):
+    with raises(
+        ValueError, match="Both --spectral-start-channel and --spectral-stop-channel"
+    ):
         main(
             [
                 "180.0",

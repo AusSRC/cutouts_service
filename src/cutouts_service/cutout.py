@@ -9,7 +9,11 @@ from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 
-from cutouts_service.fits_utils import build_cutout_header, open_fits_source,get_cube_details
+from cutouts_service.fits_utils import (
+    build_cutout_header,
+    open_fits_source,
+    get_cube_details,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -80,7 +84,9 @@ def _find_image_hdu(hdul: fits.HDUList) -> ImageLikeHDU:
     raise ValueError("No image HDU with data was found in the FITS source")
 
 
-def compute_pixel_indices(header: fits.Header, position: SkyCoord, size: u.Quantity) -> dict[str, float | list[str]]:
+def compute_pixel_indices(
+    header: fits.Header, position: SkyCoord, size: u.Quantity
+) -> dict[str, float | list[str]]:
     """Compute the array indices from the input celestial coordinates
 
     Parameters
@@ -99,25 +105,26 @@ def compute_pixel_indices(header: fits.Header, position: SkyCoord, size: u.Quant
     """
 
     wcs = WCS(header)
-    ra_dec_min = position.spherical_offsets_by(-size/2, -size/2)
-    ra_dec_max = position.spherical_offsets_by(size/2, size/2)
+    ra_dec_min = position.spherical_offsets_by(-size / 2, -size / 2)
+    ra_dec_max = position.spherical_offsets_by(size / 2, size / 2)
     x0, y0 = wcs.celestial.world_to_pixel(ra_dec_min)
     x1, y1 = wcs.celestial.world_to_pixel(ra_dec_max)
-    x_min = np.floor(min(x0,x1))
-    x_max = np.ceil(max(x0,x1))
-    y_min = np.floor(min(y0,y1))
-    y_max = np.ceil(max(y0,y1))
+    x_min = np.floor(min(x0, x1))
+    x_max = np.ceil(max(x0, x1))
+    y_min = np.floor(min(y0, y1))
+    y_max = np.ceil(max(y0, y1))
 
     axis_types = [
-        header.get(f"CTYPE{i+1}", "").upper()
-        for i in range(header["NAXIS"])
+        header.get(f"CTYPE{i + 1}", "").upper() for i in range(header["NAXIS"])
     ]
 
-    return {"xmin":int(x_min),
-            "xmax":int(x_max),
-            "ymin":int(y_min),
-            "ymax":int(y_max),
-            "axis_types": axis_types}
+    return {
+        "xmin": int(x_min),
+        "xmax": int(x_max),
+        "ymin": int(y_min),
+        "ymax": int(y_max),
+        "axis_types": axis_types,
+    }
 
 
 def _build_spatial_cutout(
@@ -169,26 +176,29 @@ def _build_spatial_cutout(
         raise ValueError(f"Unsupported image dimensionality: {source_ndim}")
 
     indices = compute_pixel_indices(image_hdu.header, position, size)
-    indices.update({"zmin":spectral_start_channel,
-                    "zmax":spectral_stop_channel})
-    
+    indices.update({"zmin": spectral_start_channel, "zmax": spectral_stop_channel})
+
     slices = []
     for ctype in indices["axis_types"]:
         if "RA" in ctype:
-            slices.append(slice(indices["xmin"], indices["xmax"]+1))
+            slices.append(slice(indices["xmin"], indices["xmax"] + 1))
         elif "DEC" in ctype:
-            slices.append(slice(indices["ymin"], indices["ymax"]+1))
+            slices.append(slice(indices["ymin"], indices["ymax"] + 1))
         elif "FREQ" in ctype:
-            slices.append(slice(indices["zmin"], indices["zmax"] if indices["zmax"] is None else indices["zmax"]+1))
+            slices.append(
+                slice(
+                    indices["zmin"],
+                    indices["zmax"] if indices["zmax"] is None else indices["zmax"] + 1,
+                )
+            )
         elif "STOKES" in ctype:
             slices.append(slice(None))
-    
+
     slices = tuple(slices[::-1])
     logger.info("pixel slice calculated: %s", slices)
     logger.info("performing slice")
 
     data = image_hdu.section[slices]
-
 
     header = build_cutout_header(image_hdu.header, slices, data.shape, data.dtype)
     return data, header, slices
@@ -205,7 +215,7 @@ def write_cutout(
     spectral_start_pixel: int | None = None,
     spectral_stop_pixel: int | None = None,
     overwrite: bool = False,
-    dry_run: bool = False
+    dry_run: bool = False,
 ) -> Path:
     """Extract a sky cutout and write it to a FITS file.
 
@@ -241,7 +251,7 @@ def write_cutout(
     ------
     FileExistsError
         If the output file already exists and `overwrite` is set to False
-    """ 
+    """
     output_path = Path(output_path)
     logger.info(
         f"Preparing cutout request source={str(source)} output_path={str(output_path)} "
@@ -256,7 +266,9 @@ def write_cutout(
         logger.info(f"Opened FITS source hdu_count={len(hdul)}")
         image_hdu = _find_image_hdu(hdul)
         if dry_run:
-            get_cube_details(image_hdu, ra, dec, radius, spectral_start_pixel, spectral_stop_pixel)
+            get_cube_details(
+                image_hdu, ra, dec, radius, spectral_start_pixel, spectral_stop_pixel
+            )
         else:
             data, header, _ = _build_spatial_cutout(
                 image_hdu,
@@ -267,11 +279,15 @@ def write_cutout(
                 spectral_stop_channel=spectral_stop_pixel,
             )
     if not dry_run:
-        logger.info(f"Ensuring output directory exists output_directory={str(output_path.parent)}")
+        logger.info(
+            f"Ensuring output directory exists output_directory={str(output_path.parent)}"
+        )
         output_path.parent.mkdir(parents=True, exist_ok=True)
         logger.info(
             f"Writing cutout to output FITS output_path={str(output_path)} output_shape={tuple(data.shape)}"
         )
-        fits.PrimaryHDU(data=data, header=header).writeto(output_path, overwrite=overwrite)
+        fits.PrimaryHDU(data=data, header=header).writeto(
+            output_path, overwrite=overwrite
+        )
         logger.info(f"Cutout write complete output_path={str(output_path)}")
     return output_path

@@ -14,7 +14,7 @@ LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
 def configure_logging(level_name: str):
     """Configure root logging for the CLI.
-    
+
     Parameters
     ----------
     level_name : str
@@ -54,19 +54,23 @@ def build_parser() -> argparse.ArgumentParser:
         "--spectral-start-channel",
         type=int,
         default=None,
-        help="Optional inclusive start channel for spectral-axis cutout",
+        help="Optional inclusive start channel for spectral-axis cutout, set "
+        "spectral-start-channel and spectral-stop-channel to the same value for "
+        "a single channel. Default is all channels.",
     )
     parser.add_argument(
         "--spectral-stop-channel",
         type=int,
         default=None,
-        help="Optional inclusive stop channel for spectral-axis cutout",
+        help="Optional inclusive stop channel for spectral-axis cutout, set "
+        "spectral-start-channel and spectral-stop-channel to the same value for "
+        "a single channel. Default is all channels.",
     )
     parser.add_argument(
         "--dry-run",
         "-n",
-        action='store_true',
-        help="perform a dry-run, where the selected fits cube will be queried for extent and size."
+        action="store_true",
+        help="perform a dry-run, where the selected fits cube will be queried for extent and size.",
     )
     parser.add_argument("--output", required=True, help="Output cutout FITS file")
     return parser
@@ -83,7 +87,7 @@ def main(argv: list[str] | None = None):
         cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-start-channel SPECTRAL_START_CHANNEL]
             [--spectral-stop-channel SPECTRAL_STOP_CHANNEL] [--dry-run] --output OUTPUT
             ra dec radius file
-    
+
     Parameters
     ----------
     argv : list[str] | None
@@ -100,9 +104,16 @@ def main(argv: list[str] | None = None):
     logger.info("Parsing CLI arguments")
     radius_deg = args.radius / ARCMIN_PER_DEG
     if (args.spectral_start_channel is None) != (args.spectral_stop_channel is None):
-        raise ValueError("Both --spectral-start-channel and --spectral-stop-channel must be provided together")
-    if args.spectral_start_channel is not None and args.spectral_stop_channel < args.spectral_start_channel:
-        raise ValueError("--spectral-stop-channel must be greater than or equal to --spectral-start-channel")
+        raise ValueError(
+            "Both --spectral-start-channel and --spectral-stop-channel must be provided together"
+        )
+    if (
+        args.spectral_start_channel is not None
+        and args.spectral_stop_channel < args.spectral_start_channel
+    ):
+        raise ValueError(
+            "--spectral-stop-channel must be greater than or equal to --spectral-start-channel"
+        )
 
     logger.info(
         f"Received cutout request ra_deg={args.ra} dec_deg={args.dec} "
@@ -110,7 +121,9 @@ def main(argv: list[str] | None = None):
         f"spectral_start_pixel={args.spectral_start_channel} spectral_stop_pixel={args.spectral_stop_channel}"
     )
     if not is_remote_source(args.file):
-        logger.error(f"Source validation failed: source is not remote source={args.file}")
+        logger.error(
+            f"Source validation failed: source is not remote source={args.file}"
+        )
         raise ValueError("A remote FITS URL is required")
     logger.info(f"Source validation successful source={args.file}")
 
@@ -124,7 +137,7 @@ def main(argv: list[str] | None = None):
         s3_endpoint_url=args.s3_endpoint_url,
         spectral_start_pixel=args.spectral_start_channel,
         spectral_stop_pixel=args.spectral_stop_channel,
-        dry_run=args.dry_run
+        dry_run=args.dry_run,
     )
     if args.dry_run:
         logger.info("Dry-run performed")

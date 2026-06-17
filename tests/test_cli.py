@@ -1,36 +1,123 @@
 from pathlib import Path
 
-from cutouts_service.cli import main, parse_file_source
+from astropy.io import fits
+from pytest import raises
+
+from cutouts_service.cli import build_parser
+from cutouts_service.cli import main
+from cutouts_service.fits_utils import is_remote_source
 
 
-def test_parse_file_source_for_url() -> None:
-    source_type, source_value = parse_file_source("https://example.com/catalog.fits")
+def test_build_parser_parses_cli_arguments() -> None:
+    parser = build_parser()
 
-    assert source_type == "url"
-    assert source_value == "https://example.com/catalog.fits"
+    args = parser.parse_args(
+        [
+            "13.0",
+            "-42.0",
+            "0.5",
+            "https://example.com/catalog.fits",
+            "--s3-endpoint-url",
+            "https://objects.example.org",
+            "--log-level",
+            "DEBUG",
+            "--output",
+            "cutout.fits",
+        ]
+    )
+
+    assert args.ra == 13.0
+    assert args.dec == -42.0
+    assert args.radius == 0.5
+    assert args.file == "https://example.com/catalog.fits"
+    assert args.s3_endpoint_url == "https://objects.example.org"
+    assert args.log_level == "DEBUG"
+    assert args.spectral_start_channel is None
+    assert args.spectral_stop_channel is None
+    assert args.output == "cutout.fits"
 
 
-def test_parse_file_source_for_path(tmp_path: Path) -> None:
-    test_file = tmp_path / "catalog.fits"
-    test_file.write_text("data")
+def test_build_parser_parses_spectral_pixel_range_arguments() -> None:
+    parser = build_parser()
 
-    source_type, source_value = parse_file_source(str(test_file))
+    args = parser.parse_args(
+        [
+            "13.0",
+            "-42.0",
+            "0.5",
+            "https://example.com/catalog.fits",
+            "--spectral-start-channel",
+            "10",
+            "--spectral-stop-channel",
+            "25",
+            "--output",
+            "cutout.fits",
+        ]
+    )
 
-    assert source_type == "path"
-    assert source_value == str(test_file.resolve())
+    assert args.spectral_start_channel == 10
+    assert args.spectral_stop_channel == 25
 
 
-def test_main_outputs_parsed_arguments(tmp_path: Path, capsys) -> None:
-    test_file = tmp_path / "catalog.fits"
-    test_file.write_text("data")
+def test_is_remote_source_for_url() -> None:
+    assert is_remote_source("https://example.com/catalog.fits")
 
-    exit_code = main(["13.0", "-42.0", "0.5", str(test_file)])
 
-    captured = capsys.readouterr()
+def test_is_remote_source_for_s3_url() -> None:
+    assert is_remote_source("s3://bucket/path/file.fits")
+
+
+def test_is_remote_source_rejects_local_path() -> None:
+    assert not is_remote_source("./catalog.fits")
+
+
+def test_is_remote_source_rejects_invalid_url_shape() -> None:
+    assert not is_remote_source("https:///missing-host.fits")
+
+
+def test_main_converts_radius_from_arcmin_to_degrees(
+    tmp_path: Path, remote_fits_2d
+) -> None:
+    source_url = remote_fits_2d["url"]
+    output_file = tmp_path / "cutout.fits"
+
+    exit_code = main(
+        [
+            "180.0",
+            "-30.0",
+            "30.0",
+            source_url,
+            "--output",
+            str(output_file),
+        ]
+    )
+
+    with fits.open(output_file) as hdul:
+        data = hdul[0].data
 
     assert exit_code == 0
-    assert "ra=13.0" in captured.out
-    assert "dec=-42.0" in captured.out
-    assert "radius=0.5" in captured.out
-    assert "file_type=path" in captured.out
-    assert f"file={test_file.resolve()}" in captured.out
+    assert output_file.exists()
+    assert data.shape == (4, 4)
+
+
+def test_main_requires_both_spectral_pixel_arguments(
+    tmp_path: Path, remote_fits_2d
+) -> None:
+    source_url = remote_fits_2d["url"]
+    output_file = tmp_path / "cutout.fits"
+
+    with raises(
+        ValueError, match="Both --spectral-start-channel and --spectral-stop-channel"
+    ):
+        main(
+            [
+                "180.0",
+                "-30.0",
+                "30.0",
+                source_url,
+                "--spectral-start-channel",
+                "1",
+                "--output",
+                str(output_file),
+            ]
+        )

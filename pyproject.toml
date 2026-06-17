@@ -9,7 +9,13 @@ description = "A basic CLI scaffold for cutouts requests."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "AusSRC" }]
-dependencies = []
+dependencies = [
+  "astropy>=7.0",
+  "fsspec[http]>=2024.6.1",
+  "numpy>=2.4.6",
+  "validators>=0.35.0",
+  "s3fs>=2025.3.2"
+]
 
 [project.scripts]
 cutouts-service = "cutouts_service.cli:main"
@@ -19,6 +25,7 @@ dev = [
   "ruff==0.11.6",
   "pytest==8.3.5",
   "build==1.2.2.post1",
+  "pytest-cov>=7.1.0"
 ]
 
 [tool.pytest.ini_options]

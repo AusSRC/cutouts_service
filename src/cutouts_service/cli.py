@@ -3,8 +3,12 @@
 import argparse
 import logging
 
-from cutouts_service.cutout import write_cutout
-from cutouts_service.fits_utils import is_remote_source
+from cutouts_service.cutouts.astropy_cutout import (
+    AstropyCutout,
+    IOConfig,
+    CutoutConfig,
+    Options,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -79,7 +83,6 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None):
     """Run the cutouts-service CLI.
 
-
     Example
     -------
     The service can be run using::
@@ -120,28 +123,19 @@ def main(argv: list[str] | None = None):
         f"radius_arcmin={args.radius} radius_deg={radius_deg} source={args.file} output_path={args.output} "
         f"spectral_start_pixel={args.spectral_start_channel} spectral_stop_pixel={args.spectral_stop_channel}"
     )
-    if not is_remote_source(args.file):
-        logger.error(
-            f"Source validation failed: source is not remote source={args.file}"
-        )
-        raise ValueError("A remote FITS URL is required")
-    logger.info(f"Source validation successful source={args.file}")
 
     logger.info("Starting cutout write")
-    write_cutout(
-        source=args.file,
-        output_path=args.output,
-        ra=args.ra,
-        dec=args.dec,
-        radius=radius_deg,
-        s3_endpoint_url=args.s3_endpoint_url,
-        spectral_start_pixel=args.spectral_start_channel,
-        spectral_stop_pixel=args.spectral_stop_channel,
-        dry_run=args.dry_run,
+    io_config = IOConfig(args.file, args.output, args.s3_endpoint_url)
+    cutout_config = CutoutConfig(
+        args.ra,
+        args.dec,
+        radius_deg,
+        (args.spectral_start_channel, args.spectral_stop_channel),
     )
+    options = Options(args.dry_run)
+    cutout = AstropyCutout(io_config, cutout_config, options)
+    output_path = cutout.create_cutout()
     if args.dry_run:
         logger.info("Dry-run performed")
     else:
-        logger.info(f"Cutout command finished successfully output_path={args.output}")
-
-    return 0
+        logger.info(f"Cutout command finished successfully output_path={output_path}")

@@ -5,7 +5,7 @@ from pytest import raises
 
 from cutouts_service.cli import build_parser
 from cutouts_service.cli import main
-from cutouts_service.fits_utils import is_remote_source
+from cutouts_service.utils import is_remote_source
 
 
 def test_build_parser_parses_cli_arguments() -> None:
@@ -81,21 +81,11 @@ def test_main_converts_radius_from_arcmin_to_degrees(
     source_url = remote_fits_2d["url"]
     output_file = tmp_path / "cutout.fits"
 
-    exit_code = main(
-        [
-            "180.0",
-            "-30.0",
-            "30.0",
-            source_url,
-            "--output",
-            str(output_file),
-        ]
-    )
+    main(["180.0", "-30.0", "30.0", source_url, "--output", str(output_file)])
 
     with fits.open(output_file) as hdul:
         data = hdul[0].data
 
-    assert exit_code == 0
     assert output_file.exists()
     assert data.shape == (4, 4)
 

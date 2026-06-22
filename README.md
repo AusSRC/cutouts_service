@@ -56,6 +56,12 @@ The CLI accepts `ra`, `dec`, `radius`, a remote FITS URL input (`http`, `https`,
 
 For S3-compatible object stores, pass `--s3-endpoint-url` to route `s3://` requests to a custom endpoint.
 
+## Current unsupported features and caveats
+
+- The current implementation will only create a cutout from a single HDU, which is automatically detected for the Astropy backend and assumed to be the first HDU for the ObjStore backend.
+- The above point also means that extra tables (such as a multi-beam table) will not be attached in the cutout. The current implementation sets the CASAMBM header entry to False (otherwise this can cause issues with visualisers like CARTA).
+- The current version will only cutout on two physical axes (Right Ascension and Declination) and one spectral axis. A stokes axis will be copied in its entirety. Any other axes will be omitted.
+
 ## Contributing
 
 See [contributing.md](contributing.md) for developer environment setup, uv workflow, and dependency policy.

@@ -19,20 +19,9 @@ from builtins import TypeError
 import numpy as np
 import boto3
 import json
-# import ObjStore
-# from ObjStore.get_access_keys import *
-# from ObjStore.S3Object import S3Object
-# from ObjStore.URLObject import UrlObject
-# from ObjStore.FITSheader import FITSheaderFromURL
-# from ObjStore.FITSheader import FITSheaderFromS3
-# try:
 
-# except ModuleNotFoundError:
-from get_access_keys import *
-from S3Object import S3Object
-from URLObject import UrlObject
-from FITSheader import FITSheaderFromURL
-from FITSheader import FITSheaderFromS3
+from cutouts_service import URLObject, FITSheader
+
 
 # Access codes and object identity
 endpoint = 'https://projects.pawsey.org.au'        # objectstore address
@@ -59,8 +48,8 @@ USEURL = True
 if USEURL: # local(6 threads): 856sec carnaby(24 threads):10sec
     # url = get_download_URL(certfile,endpoint,project,bucket,key)
     url = "https://ingest.pawsey.org.au/cutoutpublic/SB75060.fits"
-    hdr = FITSheaderFromURL(url)
-    obj = UrlObject(url)
+    hdr = FITSheader.FITSheaderFromURL(url)
+    obj = URLObject.UrlObject(url)
 # else: # local(6 threads): 814sec carnaby(24 threads):10sec 
 #     (access_id,secret_id,quota) = get_access_keys(certfile,endpoint,project)
 #     hdr = FITSheaderFromS3(endpoint,bucket,key,access_id,secret_id)

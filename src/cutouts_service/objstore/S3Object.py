@@ -1,25 +1,9 @@
 import os
 import sys
-import logging
 import time
-from time import perf_counter
-
-import threading
-import io
-import numpy as np
-
-import signal
-from builtins import TypeError
-from os import environ
-import calendar
-from _operator import pos
-import asyncio
-import multiprocessing as mp
-from posix import fdatasync
 
 import boto3
 from boto3.s3.transfer import TransferConfig
-import urllib.request
 
 path = os.path.abspath(os.path.dirname(__file__))
 if not path in sys.path:
@@ -229,3 +213,4 @@ if __name__ == "__main__":
     
     
     
+

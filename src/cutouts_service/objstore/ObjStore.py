@@ -1,18 +1,12 @@
 import os
 import sys
-import logging
-import time
 import multiprocessing as mp
 import threading
 import numpy as np
-import boto3
-from boto3.s3.transfer import TransferConfig
-from urllib.request import urlopen
-# import urllib3.request
 try:
     from ObjStore.FITSheader import *
 except ModuleNotFoundError:
-    from FITSheader import *
+    from cutouts_service.objstore.FITSheader import *
 
 # Gigabyte definitions:
 ONE_M = 1024 **2 # 1 Mb

@@ -5,17 +5,16 @@ import time
 import multiprocessing as mp
 import threading
 import numpy as np
-from urllib.request import urlopen
 
 path = os.path.abspath(os.path.dirname(__file__))
 if not path in sys.path:
     sys.path.append(path)
 
-import urllib3
+
 import boto3
 from boto3.s3.transfer import TransferConfig
-# import urllib3.request
 import requests
+import urllib3
 
 try:
     from ObjStore.ObjStore import *
@@ -140,3 +139,4 @@ if __name__ == "__main__":
 
 
              
+

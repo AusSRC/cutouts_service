@@ -5,23 +5,12 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-
-import numpy as np
 from astropy.io import fits
 
-#ObjStore Imports
+from cutouts_service import FITSheader
+from cutouts_service import URLObject
 
-# import ObjStore
-# from ObjStore.get_access_keys import *
-# from ObjStore.S3Object import S3Object
-# from ObjStore.URLObject import UrlObject
-# from ObjStore.FITSheader import FITSheaderFromURL
-# from ObjStore.FITSheader import FITSheaderFromS3
-from get_access_keys import *
-from S3Object import S3Object
-from URLObject import UrlObject
-from FITSheader import FITSheaderFromURL
-from FITSheader import FITSheaderFromS3
+import numpy as np
 
 from contextlib import contextmanager
 
@@ -34,6 +23,8 @@ from cutouts_service.cutouts import (
     Options,
     Cutout,
 )
+
+from cutouts_service.cutouts.cutout import _DTYPE_TO_BITPIX
 
 logger = logging.getLogger(__name__)
 
@@ -48,51 +39,11 @@ class ObjStoreCutout(Cutout):
         options: Options = Options(),
     ) -> None:
         super().__init__(io_config, cutout_config, options)
-        self.source_header: fits.Header
-
-    def _find_image_hdu(self, hdul: fits.HDUList) -> ImageLikeHDU:
-        """Find the HDU that contains the image data, useful if there are more than one HDU within the HDUList
-
-        Parameters
-        ----------
-        hdul : fits.HDUList
-            The HDUList within which to search
-
-        Returns
-        -------
-        ImageLikeHDU
-            A fits HDU that contains the required image data
-
-        Raises
-        ------
-        ValueError
-            If there was no ImageHDU found within the fits file
-        """
-        logger.info(f"Searching for first image HDU with data hdu_count={len(hdul)}")
-        for index, hdu in enumerate(hdul):
-            if not bool(getattr(hdu, "is_image", False)):
-                continue
-
-            header = getattr(hdu, "header", None)
-            if header is None:
-                continue
-
-            self._set_header_shape(header)
-            source_shape = self.fits_shape
-            if not source_shape:
-                continue
-            if any(axis_len <= 0 for axis_len in source_shape):
-                continue
-
-            logger.info(
-                f"Selected image HDU hdu_index={index} hdu_name={getattr(hdu, 'name', 'UNKNOWN')} "
-                f"data_shape={source_shape} data_ndim={len(source_shape)}"
-            )
-            return hdu
-        raise ValueError("No image HDU with data was found in the FITS source")
+        self.header_from_url: FITSheader.FITSheaderFromURL
+    
 
     def _build_spatial_cutout(
-        self, image_hdu: ImageLikeHDU, source: str, thread_count: int = 6
+        self, source: str,
     ) -> tuple[np.ndarray, fits.Header, list[slice]]:
         """Generate a cutout of a fits file
 
@@ -131,41 +82,41 @@ class ObjStoreCutout(Cutout):
         indices = self.pixel_indices
         indices.update({"zmin": channel_range[0], "zmax": channel_range[1]})
 
+        slices = []
+        for ctype in self.axis_types:
+            if "RA" in ctype:
+                slices.append(slice(indices["xmin"], indices["xmax"] + 1))
+            elif "DEC" in ctype:
+                slices.append(slice(indices["ymin"], indices["ymax"] + 1))
+            elif "FREQ" in ctype:
+                slices.append(
+                    slice(
+                        channel_range[0],
+                        (
+                            channel_range[1]
+                            if channel_range[1] is None
+                            else channel_range[1] + 1
+                        ),
+                    )
+                )
+            elif "STOKES" in ctype:
+                slices.append(slice(None))
+
+        slices = tuple(slices[::-1])
+        shape = tuple([s[1]-s[0] + 1 for s in slices])
+
+        obj = URLObject.UrlObject(source)
+
+        data = obj.getPartitionData(indices["xmin"],indices['xmax'], indices['ymin'], indices['ymax'], indices['zmin'],self.header_from_url,num_threads=1)
+
+        bitpix_to_dtype = {v: k for k,v in _DTYPE_TO_BITPIX.items()}
+        dtype = bitpix_to_dtype[self.source_header.get("BITPIX", -32)]
+        data = np.array(data, dtype=dtype)
+        data = data.reshape(shape)
+
         
-        NUM_THREADS = thread_count #Nees to be an argument
-        header = FITSheaderFromURL(source)
-        obj = UrlObject(source)
-        obj.setDebugFlag()
-        data = obj.getPartitionData(indices['xmin'],indices['xmax'],indices['ymin'],indices['ymax'],indices['zmin'],indices['zmax'],header,NUM_THREADS)
-
-        # slices = []
-        # for ctype in self.axis_types:
-        #     if "RA" in ctype:
-        #         slices.append(slice(indices["xmin"], indices["xmax"] + 1))
-        #     elif "DEC" in ctype:
-        #         slices.append(slice(indices["ymin"], indices["ymax"] + 1))
-        #     elif "FREQ" in ctype:
-        #         slices.append(
-        #             slice(
-        #                 channel_range[0],
-        #                 (
-        #                     channel_range[1]
-        #                     if channel_range[1] is None
-        #                     else channel_range[1] + 1
-        #                 ),
-        #             )
-        #         )
-        #     elif "STOKES" in ctype:
-        #         slices.append(slice(None))
-
-        # slices = tuple(slices[::-1])
-        # logger.info("pixel slice calculated: %s", slices)
-        # logger.info("performing slice")
-
-        # data = image_hdu.section[slices]
-
-        # header = self.build_cutout_header(slices, data.shape, data.dtype)
-        return data, header, #slices
+        cutout_header = self.build_cutout_header(slices, shape, dtype)
+        return data, cutout_header
 
     def create_cutout(self, overwrite: bool = False) -> Path:
         """Extract a sky cutout and write it to a FITS file.
@@ -196,73 +147,21 @@ class ObjStoreCutout(Cutout):
             raise FileExistsError(f"Output file already exists: {output_path}")
 
         logger.info("Opening FITS source")
-        with self._open_fits_source() as hdul:
-            logger.info(f"Opened FITS source hdu_count={len(hdul)}")
 
-            # set unset attributes
-            image_hdu = self._find_image_hdu(hdul)
-            self.source_header = image_hdu.header
-
-            self._compute_pixel_indices()
-
-            if self.dry_run:
-                self._get_cube_details(image_hdu)
-            else:
-                data, header = self._build_spatial_cutout(image_hdu,s3_endpoint_url)
-        if not self.dry_run:
-            logger.info(
-                f"Ensuring output directory exists output_directory={str(output_path.parent)}"
-            )
+        self.header_from_url = FITSheader.FITSheaderFromURL(source)
+        self.source_header = self.header_from_url.getHeaderDict()
+        self._set_header_shape(self.source_header)
+        self._compute_pixel_indices()
+        
+        if self.dry_run:
+            self._get_cube_details()
+        else:
+            data, header = self._build_spatial_cutout(str(source))
+            logger.info(f"Ensuring output directory exists output_directory={str(output_path.parent)}")
             output_path.parent.mkdir(parents=True, exist_ok=True)
             logger.info(
                 f"Writing cutout to output FITS output_path={str(output_path)} output_shape={tuple(data.shape)}"
             )
-            fits.PrimaryHDU(data=data, header=header).writeto(
-                output_path, overwrite=overwrite
-            )
+            fits.PrimaryHDU(data=data, header=header).writeto(output_path, overwrite=overwrite)
             logger.info(f"Cutout write complete output_path={str(output_path)}")
         return output_path
-
-    @contextmanager
-    def _open_fits_source(self):
-        """Open the fits source, closing when done
-
-        Yields
-        ------
-        HDUList
-            The list of HDUs containing the image data
-
-        Raises
-        ------
-        ValueError
-            The input file is not a remote file
-        """
-        io_c = self.io_config
-        logger.info(f"Opening FITS source source={str(io_c.source)}")
-        if not is_remote_source(io_c.source):
-            logger.error(f"Rejected non-remote FITS source source={str(io_c.source)}")
-            raise ValueError("A remote FITS URL is required")
-
-        open_args = (io_c.source,)
-        open_kwargs: dict[str, Any] = {"use_fsspec": True, "lazy_load_hdus": True}
-        parsed_source = urlparse(str(io_c.source))
-        if parsed_source.scheme == "s3":
-            fsspec_kwargs: dict[str, object] = {"anon": True}
-            if io_c.s3_endpoint_url:
-                fsspec_kwargs["client_kwargs"] = {"endpoint_url": io_c.s3_endpoint_url}
-            open_kwargs["fsspec_kwargs"] = fsspec_kwargs
-
-        logger.info(
-            f"Calling astropy.io.fits.open source={str(io_c.source)} open_kwargs={open_kwargs}"
-        )
-
-        with fits.open(*open_args, **open_kwargs) as handle:
-            try:
-                hdu_count = len(handle)
-            except TypeError:
-                hdu_count = None
-
-            logger.info(
-                f"FITS source opened source={str(io_c.source)} hdu_count={hdu_count}"
-            )
-            yield handle

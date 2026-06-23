@@ -7,15 +7,17 @@ from urllib.parse import urlparse
 
 from __future__ import annotations
 
-import argparse
-import sys
-import time
-from pathlib import Path
+# import argparse
+# import sys
+# import time
+# from pathlib import Path
 
 from astropy.io import fits
 
-from FITSheader import FITSheaderFromURL
-from URLObject import UrlObject
+from cutouts_service import FITSheader
+from cutouts_service import URLObject
+# from FITSheader import FITSheaderFromURL
+# from URLObject import UrlObject
 
 import numpy as np
 from astropy.io import fits
@@ -113,7 +115,7 @@ class ObjStoreCutout(Cutout):
     #     end = start + size
     #     return start, end, size
     
-    def _build_source_header(hdr: FITSheaderFromURL) -> fits.Header:
+    def _build_source_header(hdr: FITSheader.FITSheaderFromURL) -> fits.Header:
         """Parse an astropy FITS Header from a FITSheaderFromURL object."""
         return fits.Header.fromstring(hdr.rawHdrData().decode("latin-1"), sep="")
     
@@ -157,8 +159,8 @@ class ObjStoreCutout(Cutout):
         return header
     
     def write_cutout_to_file(self,
-        obj: UrlObject,
-        hdr: FITSheaderFromURL,
+        obj: URLObject.UrlObject,
+        hdr: FITSheader.FITSheaderFromURL,
         cutout_header: fits.Header,
         x_start: int,
         x_end: int,
@@ -371,7 +373,7 @@ class ObjStoreCutout(Cutout):
 
         
         # NUM_THREADS = thread_count #Needs to be an argument
-        header = FITSheaderFromURL(source)        
+        header = FITSheader.FITSheaderFromURL(source)        
         header_dict = header.getHeaderDict()
 
         xsize = int(header_dict.get("NAXIS1", 0))
@@ -404,7 +406,7 @@ class ObjStoreCutout(Cutout):
 
 
 
-        obj = UrlObject(source)
+        obj = URLObject.UrlObject(source)
         overwrite = False
         io_c = self.io_config
 

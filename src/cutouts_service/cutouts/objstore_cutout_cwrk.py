@@ -7,11 +7,6 @@ from urllib.parse import urlparse
 
 from __future__ import annotations
 
-# import argparse
-# import sys
-# import time
-# from pathlib import Path
-
 from astropy.io import fits
 
 from cutouts_service import FITSheader
@@ -21,15 +16,6 @@ from cutouts_service import URLObject
 
 import numpy as np
 from astropy.io import fits
-
-#ObjStore Imports
-
-
-# from get_access_keys import *
-# from S3Object import S3Object
-# from URLObject import UrlObject
-# from FITSheader import FITSheaderFromURL
-# from FITSheader import FITSheaderFromS3
 
 from contextlib import contextmanager
 
@@ -98,22 +84,6 @@ class ObjStoreCutout(Cutout):
             )
             return hdu
         raise ValueError("No image HDU with data was found in the FITS source")
-    
-    # def _get_axis_ranges(self,
-    #     length: int, scale_factor: float, position: str
-    # ) -> tuple[int, int, int]:
-    #     """Return 0-based start index, exclusive end index, and size for one axis."""
-    #     size = max(1, int(round(scale_factor * length)))
-
-    #     if position == "start":
-    #         start = 0
-    #     elif position == "end":
-    #         start = length - size
-    #     else:  # middle
-    #         start = (length - size) // 2
-
-    #     end = start + size
-    #     return start, end, size
     
     def _build_source_header(hdr: FITSheader.FITSheaderFromURL) -> fits.Header:
         """Parse an astropy FITS Header from a FITSheaderFromURL object."""
@@ -213,126 +183,10 @@ class ObjStoreCutout(Cutout):
                     print(f"  Written channel {ch + 1}/{z_size}", flush=True)
 
         return total_bytes
-
-
-    # def run_objstore_cutout(self,
-    #     url: str,
-    #     percentage: float,
-    #     output_path: Path,
-    #     position: str = "start",
-    #     include_frequency: bool = False,
-    #     num_threads: int = 1,
-    #     overwrite: bool = False,
-    # ) -> int:
-    #     """Fetch a FITS cutout from remote storage via presigned URL using ObjStore."""
-    #     position = position.lower()
-    #     if position not in {"start", "middle", "end"}:
-    #         raise ValueError(
-    #             f"Position must be one of 'start', 'middle', or 'end', got '{position}'"
-    #         )
-
-    #     if not 0 < percentage <= 100:
-    #         raise ValueError(f"Percentage must be between 0 and 100, got {percentage}")
-
-    #     print(f"Opening FITS URL: {url}")
-    #     overall_start = time.time()
-
-    #     # Fetch FITS header from the remote URL
-    #     header_fetch_start = time.time()
-    #     hdr = FITSheaderFromURL(url)
-    #     header_dict = hdr.getHeaderDict()
-    #     header_fetch_elapsed = time.time() - header_fetch_start
-
-    #     xsize = int(header_dict.get("NAXIS1", 0))
-    #     ysize = int(header_dict.get("NAXIS2", 0))
-    #     naxis = int(header_dict.get("NAXIS", 0))
-    #     zsize = 1
-
-    #     if naxis == 3:
-    #         zsize = int(header_dict.get("NAXIS3", 0))
-    #     elif naxis == 4:
-    #         zsize = int(header_dict.get("NAXIS4", 0))
-
-    #     if xsize == 0 or ysize == 0:
-    #         raise ValueError(
-    #             f"Could not read NAXIS1 ({xsize}) or NAXIS2 ({ysize}) from FITS header"
-    #         )
-
-    #     print(f"FITS dimensions: {xsize} x {ysize} pixels", end="")
-    #     if zsize > 1:
-    #         print(f" x {zsize} channels", end="")
-    #     print()
-
-    #     # Calculate cutout dimensions
-    #     num_axes = 2
-    #     if include_frequency and zsize > 1:
-    #         num_axes = 3
-    #     scale_factor = (percentage / 100.0) ** (1.0 / num_axes)
-
-    #     # Calculate spatial ranges (0-based for ObjStore)
-    #     x_start, x_end, x_size = self._get_axis_ranges(xsize, scale_factor, position)
-    #     y_start, y_end, y_size = self._get_axis_ranges(ysize, scale_factor, position)
-
-    #     # Calculate spectral range if applicable
-    #     z_start, z_end, z_size = 0, zsize, zsize
-    #     if include_frequency and zsize > 1:
-    #         z_start, z_end, z_size = self._get_axis_ranges(zsize, scale_factor, position)
-
-    #     print(f"Cutout percentage: {percentage}% of total {'volume' if zsize > 1 else 'area'}")
-    #     print(f"Scale factor per cut axis: {scale_factor:.6f}")
-    #     print(f"Position: {position}")
-    #     print(f"Include frequency axis: {'yes' if include_frequency else 'no'}")
-
-    #     if zsize > 1:
-    #         print(f"Spectral range: {z_start}:{z_end} ({z_size} channels)")
-
-    #     print(
-    #         f"Spatial ranges: "
-    #         f"Y={y_start}:{y_end} ({y_size} pixels), "
-    #         f"X={x_start}:{x_end} ({x_size} pixels)"
-    #     )
-
-    #     if x_size == 0 or y_size == 0 or z_size == 0:
-    #         raise RuntimeError("Cutout produced an empty result.")
-
-    #     # Build the cutout FITS header
-    #     source_header = self._build_source_header(hdr)
-    #     cutout_header = self._make_cutout_header(
-    #         source_header, x_start, y_start, z_start, x_size, y_size, z_size, naxis
-    #     )
-
-    #     # Stream the cutout to disk one channel at a time
-    #     print(f"Writing cutout to: {output_path}")
-    #     obj = UrlObject(url)
-    #     data_fetch_start = time.time()
-    #     data_bytes = self.write_cutout_to_file(
-    #         obj, hdr, cutout_header,
-    #         x_start, x_end, y_start, y_end, z_start,
-    #         x_size, y_size, z_size,
-    #         xsize, ysize,
-    #         output_path, overwrite,
-    #     )
-    #     data_fetch_elapsed = time.time() - data_fetch_start
-
-    #     elapsed_time = time.time() - overall_start
-    #     size_mb = data_bytes / (1024 * 1024)
-    #     file_size_mb = output_path.stat().st_size / (1024 * 1024)
-    #     throughput = size_mb / data_fetch_elapsed if data_fetch_elapsed > 0 else float("inf")
-
-    #     print("Cutout written successfully!")
-    #     print(f"Header fetch time: {header_fetch_elapsed:.3f} seconds")
-    #     print(f"Data fetch time: {data_fetch_elapsed:.3f} seconds ({data_fetch_elapsed / 60:.3f} minutes)")
-    #     print(f"Total elapsed time: {elapsed_time:.3f} seconds ({elapsed_time / 60:.3f} minutes)")
-    #     print(f"Output file: {output_path}")
-    #     print(f"Output file size (with FITS overhead): {file_size_mb:.3f} MB")
-    #     print(f"Data bytes written: {size_mb:.3f} MB")
-    #     print(f"Throughput: {throughput:.3f} MB/s")
-
-    #     return 0
     
 
     def _build_spatial_cutout(
-        self, image_hdu: ImageLikeHDU, source: str, thread_count: int = 6
+        self, image_hdu: ImageLikeHDU, source: str,
     ) -> tuple[np.ndarray, fits.Header, list[slice]]:
         """Generate a cutout of a fits file
 
@@ -372,7 +226,6 @@ class ObjStoreCutout(Cutout):
         indices.update({"zmin": channel_range[0], "zmax": channel_range[1]})
 
         
-        # NUM_THREADS = thread_count #Needs to be an argument
         header = FITSheader.FITSheaderFromURL(source)        
         header_dict = header.getHeaderDict()
 
@@ -419,38 +272,6 @@ class ObjStoreCutout(Cutout):
             xsize, ysize,
             output_path, overwrite,
         )
-
-        # obj.setDebugFlag()
-
-        # data = obj.getPartitionData(indices['xmin'],indices['xmax'],indices['ymin'],indices['ymax'],indices['zmin'],indices['zmax'],header,NUM_THREADS)
-
-        # slices = []
-        # for ctype in self.axis_types:
-        #     if "RA" in ctype:
-        #         slices.append(slice(indices["xmin"], indices["xmax"] + 1))
-        #     elif "DEC" in ctype:
-        #         slices.append(slice(indices["ymin"], indices["ymax"] + 1))
-        #     elif "FREQ" in ctype:
-        #         slices.append(
-        #             slice(
-        #                 channel_range[0],
-        #                 (
-        #                     channel_range[1]
-        #                     if channel_range[1] is None
-        #                     else channel_range[1] + 1
-        #                 ),
-        #             )
-        #         )
-        #     elif "STOKES" in ctype:
-        #         slices.append(slice(None))
-
-        # slices = tuple(slices[::-1])
-        # logger.info("pixel slice calculated: %s", slices)
-        # logger.info("performing slice")
-
-        # data = image_hdu.section[slices]
-
-        # header = self.build_cutout_header(slices, data.shape, data.dtype)
         return data, header, #slices
 
     def create_cutout(self, overwrite: bool = False) -> Path:

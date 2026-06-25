@@ -256,10 +256,8 @@ class FitsObjStore:
         
         # STRATEGY = 2
         tasks = []
-        rawdata = b''
         # Get the header data from the object store:
         header = hdr.getHeaderDict()
-        hdrstr = hdr.rawHdrData().decode() 
         self.hdrsize = hdr.len()
         print(f"header size = {self.hdrsize}",flush=True)
 
@@ -271,7 +269,6 @@ class FitsObjStore:
         self.zlen = zmax-zmin+1
 
         self.chsize = self.xsize * self.ysize
-        gap_to_next_y = (self.xsize-xmax) + xmin
 
         if int(header["NAXIS"]) == 3:
             self.zsize = int(header["NAXIS3"])

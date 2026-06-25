@@ -40,6 +40,7 @@ class ObjStoreCutout(Cutout):
     ) -> None:
         super().__init__(io_config, cutout_config, options)
         self.header_from_url: FITSheader.FITSheaderFromURL
+        self.source_header: fits.Header
     
 
     def _build_spatial_cutout(
@@ -103,11 +104,18 @@ class ObjStoreCutout(Cutout):
                 slices.append(slice(None))
 
         slices = tuple(slices[::-1])
-        shape = tuple([s[1]-s[0] + 1 for s in slices])
+        source_shape = self.fits_shape
+        shape = []
+        for i, s in enumerate(slices):
+            if s.start is None:
+                shape.append(source_shape[i])
+            else:
+                shape.append(s.stop - s.start)
+        
 
         obj = URLObject.UrlObject(source)
 
-        data = obj.getPartitionData(indices["xmin"],indices['xmax'], indices['ymin'], indices['ymax'], indices['zmin'],self.header_from_url,num_threads=1)
+        data = obj.getPartitionData(indices["xmin"],indices['xmax'], indices['ymin'], indices['ymax'], indices['zmin'] if indices["zmin"] else 0, indices['zmax'] if indices["zmax"] else self.fits_shape[0] - 1,self.header_from_url,num_threads=1)
 
         bitpix_to_dtype = {v: k for k,v in _DTYPE_TO_BITPIX.items()}
         dtype = bitpix_to_dtype[self.source_header.get("BITPIX", -32)]

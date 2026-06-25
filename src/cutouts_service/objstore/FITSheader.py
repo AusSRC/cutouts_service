@@ -188,33 +188,8 @@ class FITSheaderFromURL:
         header["HISTORY"] = ""
         header["ORIGIN"] = ""
         hdr = self.rawHdrData()
-        hdrstr = hdr.decode()
-        comment_indx = 0
-        
-        for i in range(0,len(hdrstr),FITS_HEADER_LINE_SIZE):
-            str = hdrstr[i:i+FITS_HEADER_LINE_SIZE]
-            # Special cases - 'HISTORY' and 'ORIGIN'
-            if str.startswith('HISTORY'):
-                str = str[8:]
-                header["HISTORY"] += "\n    %s" % str
-            elif str.startswith('ORIGIN'):
-                str = str.split("=")[1]
-                header["ORIGIN"] += str
-            elif str.startswith('COMMENT'):
-                header["COMMENT_%s" % comment_indx] = str[6:]
-                comment_indx += 1
-            elif str.startswith('END'):
-                break
-            else:
-                if '=' not in str:
-                    continue
-                key = str.split("=")[0]
-                value = str.split('=')[1]
-                # Remove trailing '/' from value
-                value = value.replace("\\", "")
-                value = value.replace("/", "")
-                value = value.strip()
-                header[key.strip()] = value
+        hdrstr = hdr.decode("latin-1")
+        header = fits.Header.fromstring(hdrstr)
                 
         self.__setCubeData(header)
         return header

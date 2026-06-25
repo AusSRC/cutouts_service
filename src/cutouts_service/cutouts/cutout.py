@@ -106,12 +106,11 @@ class Cutout(ABC):
         """
 
         header = self.source_header
-
         position = SkyCoord(
             ra=self.cutout_config.ra * u.deg, dec=self.cutout_config.dec * u.deg
         )
         size = 2 * self.cutout_config.radius * u.deg
-        wcs = WCS(header)
+        wcs = WCS(fits.Header(header))
         ra_dec_min = position.spherical_offsets_by(-size / 2, -size / 2)
         ra_dec_max = position.spherical_offsets_by(size / 2, size / 2)
         x0, y0 = wcs.celestial.world_to_pixel(ra_dec_min)

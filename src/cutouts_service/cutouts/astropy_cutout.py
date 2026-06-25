@@ -26,7 +26,22 @@ logger = logging.getLogger(__name__)
 
 
 class AstropyCutout(Cutout):
-    """A cutout class encapsulating the cutout from a remote source using astropy"""
+    """A cutout class encapsulating the cutout from a remote source using astropy
+
+    Parameters
+    ----------
+    io_config : IOConfig
+        The config describing the IO details (eg. url)
+    cutout_config : CutoutConfig
+        The config describing the cutout details (eg. pointing)
+    options : Options
+        The extra options, currently contains only dry_run
+
+    Attributes
+    ----------
+    source_header: fits.Header
+        The header of the source file
+    """
 
     def __init__(
         self,
@@ -80,7 +95,7 @@ class AstropyCutout(Cutout):
 
     def _build_spatial_cutout(
         self, image_hdu: ImageLikeHDU
-    ) -> tuple[np.ndarray, fits.Header, list[slice]]:
+    ) -> tuple[np.ndarray, fits.Header, tuple[slice]]:
         """Generate a cutout of a fits file
 
         Parameters
@@ -90,7 +105,7 @@ class AstropyCutout(Cutout):
 
         Returns
         -------
-        tuple[np.ndarray, fits.Header, list[slice]]
+        tuple[np.ndarray, fits.Header, tuple[slice]]
             The data array, header, and slices generated for this cutout
 
         Raises
@@ -147,6 +162,11 @@ class AstropyCutout(Cutout):
 
     def create_cutout(self, overwrite: bool = False) -> Path:
         """Extract a sky cutout and write it to a FITS file.
+
+        Parameters
+        ----------
+        overwrite : bool
+            Allow overwriting the output file
 
         Returns
         -------

@@ -30,6 +30,17 @@ ImageLikeHDU = fits.PrimaryHDU | fits.ImageHDU | fits.CompImageHDU
 
 @dataclass
 class IOConfig:
+    """The IO details
+    
+    Parameters
+    ----------
+    source : str | Path
+        The source path or url
+    output_path : str | Path
+        The path to for the output file
+    s3_endpoint_url : str | None, Optional
+        The s3 endpoint url, default is None
+    """
     source: str | Path
     output_path: str | Path
     s3_endpoint_url: str | None = None
@@ -37,6 +48,19 @@ class IOConfig:
 
 @dataclass
 class CutoutConfig:
+    """The cutout details
+
+    Parameters
+    ----------
+    ra : float
+        The Right ascension of the pointing in decimal degrees
+    dec : float
+        The declination of the pointing in decimal degrees
+    radius : float
+        The radius/extent of the cutout centred at the pointing
+    channel_range : tuple[int, ...] | tuple[None, ...], Optional
+        The inclusive channel range to cutout on the spectral axis
+    """
     ra: float
     dec: float
     radius: float
@@ -45,11 +69,39 @@ class CutoutConfig:
 
 @dataclass
 class Options:
+    """The options
+
+    Parameters
+    ----------
+    dry_run : bool
+        Run a dry-run instead to check input parameters
+    """
     dry_run: bool = False
 
 
 class Cutout(ABC):
-    """A general cutout class that needs a to be overwritten with a specific tool"""
+    """A general cutout class that needs a to be overwritten with a specific tool
+    
+    Parameters
+    ----------
+    io_config : IOConfig
+        The config describing the IO details (eg. url)
+    cutout_config : CutoutConfig
+        The config describing the cutout details (eg. pointing)
+    options : Options
+        The extra options, currently contains only dry_run
+
+    Attributes
+    ----------
+    source_header : dict[str, Any]
+        The header of the source file
+    fits_shape : tuple[int, ...]
+        The shape of the fits cube
+    pixel_indices : dict[str, int]
+        The pixel indices of the cutout
+    axis_types : tuple[str]
+        The types of the relevant axes
+    """
 
     def __init__(
         self,
@@ -71,6 +123,11 @@ class Cutout(ABC):
     def _set_header_shape(self, header: dict[str, Any]):
         """Get the shape of the fits file form the header
 
+        Parameters
+        ----------
+        header : dict[str, Any]
+            The header file
+
         Returns
         -------
         tuple[int, ...]
@@ -89,20 +146,6 @@ class Cutout(ABC):
 
     def _compute_pixel_indices(self):
         """Compute the array indices from the input celestial coordinates
-
-        Parameters
-        ----------
-        header : fits.Header
-            The header containing the WCS information needed to do the conversion
-        position : SkyCoord
-            The sky position of the center of the cutout
-        size : u.Quantity
-            The size of the intended cutout (assuming a square cutout)
-
-        Returns
-        -------
-        dict[str, int | list[str]]
-            Contains the pixel extents within the fits array as well as a list of axis types
         """
 
         header = self.source_header
@@ -133,7 +176,18 @@ class Cutout(ABC):
 
     @abstractmethod
     def create_cutout(self, overwrite: bool = False):
-        """Extract a sky cutout and write it to a FITS file."""
+        """Extract a sky cutout and write it to a FITS file.
+        
+        Parameters
+        ----------
+        overwrite : bool
+            Allow overwriting the output file
+
+        Raises
+        ------
+        NotImplementedError
+            The method needs to be overwritten
+        """
         raise NotImplementedError(
             "This method must be overwritten with the specific cutout implementation"
         )
@@ -207,13 +261,13 @@ class Cutout(ABC):
             )
 
     def build_cutout_header(
-        self, slices: list[slice], shape: tuple[int, ...], section_dtype: np.dtype
+        self, slices: tuple[slice], shape: tuple[int, ...], section_dtype: np.dtype
     ) -> fits.Header:
         """Return a FITS header adjusted for a cutout region.
 
         Parameters
         ----------
-        slices : list[slice]
+        slices : tuple[slice]
             The slices that were performed on the fits data
         shape : tuple[int, ...]
             The shape of the data

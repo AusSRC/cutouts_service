@@ -138,6 +138,26 @@ class Cutout(ABC):
             "This method must be overwritten with the specific cutout implementation"
         )
 
+    def check_cutout_fit(self) -> bool:
+        """Checks if the requested cutout fits in the given cube
+
+        Returns
+        -------
+        bool
+            True if the cutout fits, False if it doesn't.
+        """
+        shape = self.fits_shape[::-1]
+        chans = self.cutout_config.channel_range
+        cutout_indices = self.pixel_indices
+        if cutout_indices["xmin"] < 0 or cutout_indices["xmax"] > (shape[0] - 1):
+            return False
+        if cutout_indices["ymin"] < 0 or cutout_indices["ymax"] > (shape[1] - 1):
+            return False
+        if chans[0] is not None and chans[1] is not None:
+            if chans[0] < 0 or chans[1] > (shape[-1] - 1):
+                return False
+        return True
+
     def _get_cube_details(self):
         """Query and print key Cube details from header"""
 

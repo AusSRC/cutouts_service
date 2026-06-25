@@ -2,8 +2,6 @@
 
 import logging
 from pathlib import Path
-from typing import Any
-from urllib.parse import urlparse
 
 from astropy.io import fits
 
@@ -12,12 +10,9 @@ from cutouts_service import URLObject
 
 import numpy as np
 
-from contextlib import contextmanager
 
-from cutouts_service.utils import is_remote_source
 
 from cutouts_service.cutouts import (
-    ImageLikeHDU,
     IOConfig,
     CutoutConfig,
     Options,
@@ -41,10 +36,10 @@ class ObjStoreCutout(Cutout):
         super().__init__(io_config, cutout_config, options)
         self.header_from_url: FITSheader.FITSheaderFromURL
         self.source_header: fits.Header
-    
 
     def _build_spatial_cutout(
-        self, source: str,
+        self,
+        source: str,
     ) -> tuple[np.ndarray, fits.Header, list[slice]]:
         """Generate a cutout of a fits file
 
@@ -111,18 +106,25 @@ class ObjStoreCutout(Cutout):
                 shape.append(source_shape[i])
             else:
                 shape.append(s.stop - s.start)
-        
 
         obj = URLObject.UrlObject(source)
 
-        data = obj.getPartitionData(indices["xmin"],indices['xmax'], indices['ymin'], indices['ymax'], indices['zmin'] if indices["zmin"] else 0, indices['zmax'] if indices["zmax"] else self.fits_shape[0] - 1,self.header_from_url,num_threads=1)
+        data = obj.getPartitionData(
+            indices["xmin"],
+            indices["xmax"],
+            indices["ymin"],
+            indices["ymax"],
+            indices["zmin"] if indices["zmin"] else 0,
+            indices["zmax"] if indices["zmax"] else self.fits_shape[0] - 1,
+            self.header_from_url,
+            num_threads=1,
+        )
 
-        bitpix_to_dtype = {v: k for k,v in _DTYPE_TO_BITPIX.items()}
+        bitpix_to_dtype = {v: k for k, v in _DTYPE_TO_BITPIX.items()}
         dtype = bitpix_to_dtype[self.source_header.get("BITPIX", -32)]
         data = np.array(data, dtype=dtype)
         data = data.reshape(shape)
 
-        
         cutout_header = self.build_cutout_header(slices, shape, dtype)
         return data, cutout_header
 
@@ -160,16 +162,25 @@ class ObjStoreCutout(Cutout):
         self.source_header = self.header_from_url.getHeaderDict()
         self._set_header_shape(self.source_header)
         self._compute_pixel_indices()
-        
+
+        if not self.check_cutout_fit():
+            raise ValueError(
+                "The provided cutout configuration extends past the extents of the selected cube. Please use the astropy backend to clip the extents of the cutout to that of the cube."
+            )
+
         if self.dry_run:
             self._get_cube_details()
         else:
             data, header = self._build_spatial_cutout(str(source))
-            logger.info(f"Ensuring output directory exists output_directory={str(output_path.parent)}")
+            logger.info(
+                f"Ensuring output directory exists output_directory={str(output_path.parent)}"
+            )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             logger.info(
                 f"Writing cutout to output FITS output_path={str(output_path)} output_shape={tuple(data.shape)}"
             )
-            fits.PrimaryHDU(data=data, header=header).writeto(output_path, overwrite=overwrite)
+            fits.PrimaryHDU(data=data, header=header).writeto(
+                output_path, overwrite=overwrite
+            )
             logger.info(f"Cutout write complete output_path={str(output_path)}")
         return output_path

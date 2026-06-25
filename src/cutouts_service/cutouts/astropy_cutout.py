@@ -182,6 +182,10 @@ class AstropyCutout(Cutout):
             self.source_header = image_hdu.header
 
             self._compute_pixel_indices()
+            if not self.check_cutout_fit():
+                logger.warning(
+                    "The provided cutout configuration extends past the extents of the selected cube. The cutout extents will be clipped appropriately."
+                )
 
             if self.dry_run:
                 self._get_cube_details(image_hdu)

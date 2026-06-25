@@ -26,7 +26,6 @@ def source_header_2d() -> fits.Header:
 @pytest.fixture
 def source_header_3d() -> fits.Header:
     shape = (10, 2, 20, 20)
-    data = np.arange(np.prod(shape), dtype=np.float32).reshape(shape)
     header = fits.Header()
     header["NAXIS"] = 4
     header["NAXIS1"] = shape[3]
@@ -94,6 +93,7 @@ def remote_fits_3d(http_file_server, source_header_3d: fits.Header):
         "url": f"{base_url}/{source_file.name}",
         "header": source_header_3d,
     }
+
 
 @pytest.fixture
 def remote_fits_3d_objstore(http_file_server, source_header_3d: fits.Header):

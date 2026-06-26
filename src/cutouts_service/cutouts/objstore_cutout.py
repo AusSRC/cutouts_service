@@ -79,7 +79,6 @@ class ObjStoreCutout(Cutout):
         dec = self.cutout_config.dec
         radius = self.cutout_config.radius
         channel_range = self.cutout_config.channel_range
-        header = self.source_header
         source_shape = self.fits_shape
 
         logger.info(

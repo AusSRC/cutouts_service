@@ -26,7 +26,6 @@ def source_header_2d() -> fits.Header:
 @pytest.fixture
 def source_header_3d() -> fits.Header:
     shape = (10, 2, 20, 20)
-    data = np.arange(np.prod(shape), dtype=np.float32).reshape(shape)
     header = fits.Header()
     header["NAXIS"] = 4
     header["NAXIS1"] = shape[3]
@@ -46,7 +45,7 @@ def source_header_3d() -> fits.Header:
     header["CTYPE3"] = "STOKES"
     header["CTYPE4"] = "FREQ"
     header["BITPIX"] = -32
-    return fits.PrimaryHDU(data=data, header=header).header
+    return header
 
 
 @pytest.fixture
@@ -93,4 +92,19 @@ def remote_fits_3d(http_file_server, source_header_3d: fits.Header):
     return {
         "url": f"{base_url}/{source_file.name}",
         "header": source_header_3d,
+    }
+
+
+@pytest.fixture
+def remote_fits_3d_objstore(http_file_server, source_header_3d: fits.Header):
+    root = http_file_server["root"]
+    base_url = http_file_server["base_url"]
+    source_file = root / "source_cube.fits"
+    source_data = np.arange(10 * 1 * 20 * 20, dtype=np.float32).reshape((10, 1, 20, 20))
+    source_header_3d_objstore = source_header_3d
+    source_header_3d_objstore.set("NAXIS4", 1)
+    fits.PrimaryHDU(data=source_data, header=source_header_3d).writeto(source_file)
+    return {
+        "url": f"{base_url}/{source_file.name}",
+        "header": source_header_3d_objstore,
     }

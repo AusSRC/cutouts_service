@@ -17,3 +17,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed current implementation to inherit from base Cutout class as an AstropyCutout class
 - Rearanged file structure to match heirarchy
 - Updated tests to match
+- Added switch to change backend to use either Astropy or ObjStore

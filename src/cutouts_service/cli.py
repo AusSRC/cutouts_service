@@ -3,11 +3,12 @@
 import argparse
 import logging
 
-from cutouts_service.cutouts.astropy_cutout import (
+from cutouts_service.cutouts import (
     AstropyCutout,
     IOConfig,
     CutoutConfig,
     Options,
+    ObjStoreCutout,
 )
 
 
@@ -77,6 +78,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="perform a dry-run, where the selected fits cube will be queried for extent and size.",
     )
     parser.add_argument("--output", required=True, help="Output cutout FITS file")
+    parser.add_argument(
+        "--backend",
+        default="astropy",
+        help="The backend to use to perform the cutout. The two supported options are 'astropy' and 'objstore'. Default is 'astropy'.",
+    )
     return parser
 
 
@@ -88,7 +94,7 @@ def main(argv: list[str] | None = None):
     The service can be run using::
 
         cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-start-channel SPECTRAL_START_CHANNEL]
-            [--spectral-stop-channel SPECTRAL_STOP_CHANNEL] [--dry-run] --output OUTPUT
+            [--spectral-stop-channel SPECTRAL_STOP_CHANNEL] [--dry-run] --output OUTPUT [--backend BACKEND]
             ra dec radius file
 
     Parameters
@@ -117,6 +123,10 @@ def main(argv: list[str] | None = None):
         raise ValueError(
             "--spectral-stop-channel must be greater than or equal to --spectral-start-channel"
         )
+    if args.backend not in ("astropy", "objstore"):
+        raise ValueError(
+            "The --backend argument must be either 'astropy' or 'objstore'"
+        )
 
     logger.info(
         f"Received cutout request ra_deg={args.ra} dec_deg={args.dec} "
@@ -133,7 +143,14 @@ def main(argv: list[str] | None = None):
         (args.spectral_start_channel, args.spectral_stop_channel),
     )
     options = Options(args.dry_run)
-    cutout = AstropyCutout(io_config, cutout_config, options)
+    if args.backend == "astropy":
+        cutout = AstropyCutout(io_config, cutout_config, options)
+    elif args.backend == "objstore":
+        cutout = ObjStoreCutout(io_config, cutout_config, options)
+    else:
+        raise ValueError(
+            "The --backend argument must be either 'astropy' or 'objstore'"
+        )
     output_path = cutout.create_cutout()
     if args.dry_run:
         logger.info("Dry-run performed")

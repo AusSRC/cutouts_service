@@ -93,7 +93,7 @@ class AstropyCutout(Cutout):
             return hdu
         raise ValueError("No image HDU with data was found in the FITS source")
 
-    def _build_spatial_cutout(
+    def _build_cutout(
         self, image_hdu: ImageLikeHDU
     ) -> tuple[np.ndarray, fits.Header, tuple[slice]]:
         """Generate a cutout of a fits file
@@ -210,7 +210,7 @@ class AstropyCutout(Cutout):
             if self.dry_run:
                 self._get_cube_details(image_hdu)
             else:
-                data, header, _ = self._build_spatial_cutout(image_hdu)
+                data, header, _ = self._build_cutout(image_hdu)
         if not self.dry_run:
             logger.info(
                 f"Ensuring output directory exists output_directory={str(output_path.parent)}"

@@ -22,7 +22,7 @@ def test_build_parser_parses_cli_arguments() -> None:
             "--log-level",
             "DEBUG",
             "--output",
-            "cutout.fits",
+            "cutout.fits"
         ]
     )
 

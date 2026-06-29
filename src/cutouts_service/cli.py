@@ -15,6 +15,7 @@ from cutouts_service.cutouts import (
 logger = logging.getLogger(__name__)
 ARCMIN_PER_DEG = 60.0
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+BACKENDS = {"astropy" : AstropyCutout, "objstore" : ObjStoreCutout}
 
 
 def configure_logging(level_name: str):
@@ -123,9 +124,9 @@ def main(argv: list[str] | None = None):
         raise ValueError(
             "--spectral-stop-channel must be greater than or equal to --spectral-start-channel"
         )
-    if args.backend not in ("astropy", "objstore"):
+    if args.backend not in BACKENDS.keys():
         raise ValueError(
-            "The --backend argument must be either 'astropy' or 'objstore'"
+            f"The --backend argument must be one of {', '.join(BACKENDS.keys())}"
         )
 
     logger.info(
@@ -143,14 +144,11 @@ def main(argv: list[str] | None = None):
         (args.spectral_start_channel, args.spectral_stop_channel),
     )
     options = Options(args.dry_run)
-    if args.backend == "astropy":
-        cutout = AstropyCutout(io_config, cutout_config, options)
-    elif args.backend == "objstore":
-        cutout = ObjStoreCutout(io_config, cutout_config, options)
-    else:
-        raise ValueError(
-            "The --backend argument must be either 'astropy' or 'objstore'"
-        )
+    try:
+        cutout = BACKENDS[args.backend](io_config, cutout_config, options)
+    except IndexError:
+        raise ValueError(f"The --backend argument must be one of {', '.join(BACKENDS.keys())}")
+    
     output_path = cutout.create_cutout()
     if args.dry_run:
         logger.info("Dry-run performed")

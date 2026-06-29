@@ -54,7 +54,7 @@ class ObjStoreCutout(Cutout):
         self.header_from_url: FITSheader.FITSheaderFromURL
         self.source_header: fits.Header
 
-    def _build_spatial_cutout(
+    def _build_cutout(
         self,
         source: str,
     ) -> tuple[np.ndarray, fits.Header]:
@@ -192,7 +192,7 @@ class ObjStoreCutout(Cutout):
         if self.dry_run:
             self._get_cube_details()
         else:
-            data, header = self._build_spatial_cutout(str(source))
+            data, header = self._build_cutout(str(source))
             logger.info(
                 f"Ensuring output directory exists output_directory={str(output_path.parent)}"
             )

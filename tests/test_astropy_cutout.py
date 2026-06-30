@@ -197,3 +197,14 @@ def test_get_cube_details(remote_fits_3d, caplog) -> None:
     captured = caplog.records
     for record in captured[5:8]:
         assert len(record.msg) > 0
+
+
+def test_fail_on_out_of_bounds(tmp_path: Path, remote_fits_3d):
+    output_file = tmp_path / "cutout_cube.fits"
+    source_url = remote_fits_3d["url"]
+
+    io_config = IOConfig(source_url, output_file)
+    cutout_config = CutoutConfig(180.0, -30.0, 2.0, (-5, 100))
+    error_text = "The provided cutout configuration extends past the extents of the selected cube"
+    with pytest.raises(ValueError, match=error_text):
+        AstropyCutout(io_config, cutout_config).create_cutout()

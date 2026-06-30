@@ -11,7 +11,6 @@ from cutouts_service import URLObject
 import numpy as np
 
 
-
 from cutouts_service.cutouts import (
     IOConfig,
     CutoutConfig,
@@ -26,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 class ObjStoreCutout(Cutout):
     """A cutout class encapsulating the cutout from a remote source using astropy
-    
+
     Parameters
     ----------
     io_config : IOConfig
@@ -186,7 +185,9 @@ class ObjStoreCutout(Cutout):
 
         if not self.check_cutout_fit():
             raise ValueError(
-                "The provided cutout configuration extends past the extents of the selected cube. Please use the astropy backend to clip the extents of the cutout to that of the cube."
+                "The provided cutout configuration extends past the extents of the selected "
+                "cube. Please check the coordinates and try again. Note, the cutout will round "
+                "to the outer edge of the pixels."
             )
 
         if self.dry_run:

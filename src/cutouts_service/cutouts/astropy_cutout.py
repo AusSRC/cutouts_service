@@ -203,8 +203,10 @@ class AstropyCutout(Cutout):
 
             self._compute_pixel_indices()
             if not self.check_cutout_fit():
-                logger.warning(
-                    "The provided cutout configuration extends past the extents of the selected cube. The cutout extents will be clipped appropriately."
+                raise ValueError(
+                    "The provided cutout configuration extends past the extents of "
+                    "the selected cube. Please check the coordinates and try again."
+                    " Note, the cutout will round to the outer edge of the pixels."
                 )
 
             if self.dry_run:

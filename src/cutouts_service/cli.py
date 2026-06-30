@@ -15,7 +15,7 @@ from cutouts_service.cutouts import (
 logger = logging.getLogger(__name__)
 ARCMIN_PER_DEG = 60.0
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
-BACKENDS = {"astropy" : AstropyCutout, "objstore" : ObjStoreCutout}
+BACKENDS = {"astropy": AstropyCutout, "objstore": ObjStoreCutout}
 
 
 def configure_logging(level_name: str):
@@ -147,8 +147,10 @@ def main(argv: list[str] | None = None):
     try:
         cutout = BACKENDS[args.backend](io_config, cutout_config, options)
     except IndexError:
-        raise ValueError(f"The --backend argument must be one of {', '.join(BACKENDS.keys())}")
-    
+        raise ValueError(
+            f"The --backend argument must be one of {', '.join(BACKENDS.keys())}"
+        )
+
     output_path = cutout.create_cutout()
     if args.dry_run:
         logger.info("Dry-run performed")

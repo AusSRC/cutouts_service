@@ -31,7 +31,7 @@ ImageLikeHDU = fits.PrimaryHDU | fits.ImageHDU | fits.CompImageHDU
 @dataclass
 class IOConfig:
     """The IO details
-    
+
     Parameters
     ----------
     source : str | Path
@@ -41,6 +41,7 @@ class IOConfig:
     s3_endpoint_url : str | None, Optional
         The s3 endpoint url, default is None
     """
+
     source: str | Path
     output_path: str | Path
     s3_endpoint_url: str | None = None
@@ -61,6 +62,7 @@ class CutoutConfig:
     channel_range : tuple[int, ...] | tuple[None, ...], Optional
         The inclusive channel range to cutout on the spectral axis
     """
+
     ra: float
     dec: float
     radius: float
@@ -76,12 +78,13 @@ class Options:
     dry_run : bool
         Run a dry-run instead to check input parameters
     """
+
     dry_run: bool = False
 
 
 class Cutout(ABC):
     """A general cutout class that needs a to be overwritten with a specific tool
-    
+
     Parameters
     ----------
     io_config : IOConfig
@@ -145,8 +148,7 @@ class Cutout(ABC):
         )
 
     def _compute_pixel_indices(self):
-        """Compute the array indices from the input celestial coordinates
-        """
+        """Compute the array indices from the input celestial coordinates"""
 
         header = self.source_header
         position = SkyCoord(
@@ -177,7 +179,7 @@ class Cutout(ABC):
     @abstractmethod
     def create_cutout(self, overwrite: bool = False):
         """Extract a sky cutout and write it to a FITS file.
-        
+
         Parameters
         ----------
         overwrite : bool

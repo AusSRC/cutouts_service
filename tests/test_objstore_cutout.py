@@ -1,9 +1,12 @@
 """Tests for the ObjectStore Backend for cutouts_service"""
 
-from cutouts_service.cutouts import IOConfig, CutoutConfig, ObjStoreCutout
-
 import math
+from pathlib import Path
+
+import pytest
 from astropy.io import fits
+
+from cutouts_service.cutouts import CutoutConfig, IOConfig, ObjStoreCutout
 
 
 def test_objstore_create_cutout(remote_fits_3d_objstore, tmp_path):
@@ -26,3 +29,14 @@ def test_objstore_create_cutout(remote_fits_3d_objstore, tmp_path):
     assert header["NAXIS4"] == 2
     assert header["CRPIX1"] < source_header["CRPIX1"]
     assert header["CRPIX2"] < source_header["CRPIX2"]
+
+
+def test_fail_on_out_of_bounds(tmp_path: Path, remote_fits_3d):
+    output_file = tmp_path / "cutout_cube.fits"
+    source_url = remote_fits_3d["url"]
+
+    io_config = IOConfig(source_url, output_file)
+    cutout_config = CutoutConfig(180.0, -30.0, 2.0, (-5, 100))
+    error_text = "The provided cutout configuration extends past the extents of the selected cube"
+    with pytest.raises(ValueError, match=error_text):
+        ObjStoreCutout(io_config, cutout_config).create_cutout()

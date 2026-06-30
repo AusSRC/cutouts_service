@@ -3,13 +3,19 @@
 import argparse
 import logging
 
-from cutouts_service.cutout import write_cutout
-from cutouts_service.fits_utils import is_remote_source
+from cutouts_service.cutouts import (
+    AstropyCutout,
+    IOConfig,
+    CutoutConfig,
+    Options,
+    ObjStoreCutout,
+)
 
 
 logger = logging.getLogger(__name__)
 ARCMIN_PER_DEG = 60.0
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+BACKENDS = {"astropy": AstropyCutout, "objstore": ObjStoreCutout}
 
 
 def configure_logging(level_name: str):
@@ -73,19 +79,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="perform a dry-run, where the selected fits cube will be queried for extent and size.",
     )
     parser.add_argument("--output", required=True, help="Output cutout FITS file")
+    parser.add_argument(
+        "--backend",
+        default="astropy",
+        help="The backend to use to perform the cutout. The two supported options are 'astropy' and 'objstore'. Default is 'astropy'.",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None):
     """Run the cutouts-service CLI.
 
-
     Example
     -------
     The service can be run using::
 
         cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-start-channel SPECTRAL_START_CHANNEL]
-            [--spectral-stop-channel SPECTRAL_STOP_CHANNEL] [--dry-run] --output OUTPUT
+            [--spectral-stop-channel SPECTRAL_STOP_CHANNEL] [--dry-run] --output OUTPUT [--backend BACKEND]
             ra dec radius file
 
     Parameters
@@ -114,34 +124,35 @@ def main(argv: list[str] | None = None):
         raise ValueError(
             "--spectral-stop-channel must be greater than or equal to --spectral-start-channel"
         )
+    if args.backend not in BACKENDS.keys():
+        raise ValueError(
+            f"The --backend argument must be one of {', '.join(BACKENDS.keys())}"
+        )
 
     logger.info(
         f"Received cutout request ra_deg={args.ra} dec_deg={args.dec} "
         f"radius_arcmin={args.radius} radius_deg={radius_deg} source={args.file} output_path={args.output} "
         f"spectral_start_pixel={args.spectral_start_channel} spectral_stop_pixel={args.spectral_stop_channel}"
     )
-    if not is_remote_source(args.file):
-        logger.error(
-            f"Source validation failed: source is not remote source={args.file}"
-        )
-        raise ValueError("A remote FITS URL is required")
-    logger.info(f"Source validation successful source={args.file}")
 
     logger.info("Starting cutout write")
-    write_cutout(
-        source=args.file,
-        output_path=args.output,
-        ra=args.ra,
-        dec=args.dec,
-        radius=radius_deg,
-        s3_endpoint_url=args.s3_endpoint_url,
-        spectral_start_pixel=args.spectral_start_channel,
-        spectral_stop_pixel=args.spectral_stop_channel,
-        dry_run=args.dry_run,
+    io_config = IOConfig(args.file, args.output, args.s3_endpoint_url)
+    cutout_config = CutoutConfig(
+        args.ra,
+        args.dec,
+        radius_deg,
+        (args.spectral_start_channel, args.spectral_stop_channel),
     )
+    options = Options(args.dry_run)
+    try:
+        cutout = BACKENDS[args.backend](io_config, cutout_config, options)
+    except IndexError:
+        raise ValueError(
+            f"The --backend argument must be one of {', '.join(BACKENDS.keys())}"
+        )
+
+    output_path = cutout.create_cutout()
     if args.dry_run:
         logger.info("Dry-run performed")
     else:
-        logger.info(f"Cutout command finished successfully output_path={args.output}")
-
-    return 0
+        logger.info(f"Cutout command finished successfully output_path={output_path}")

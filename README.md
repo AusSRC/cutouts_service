@@ -23,7 +23,7 @@ The cutouts service is run from a single command:
 
 ```bash
 usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-start-channel SPECTRAL_START_CHANNEL]
-            [--spectral-stop-channel SPECTRAL_STOP_CHANNEL] [--dry-run] --output OUTPUT
+            [--spectral-stop-channel SPECTRAL_STOP_CHANNEL] [--dry-run] --output OUTPUT [--backend BACKEND]
             ra dec radius file
 ```
 ### Where:
@@ -43,6 +43,7 @@ usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DE
 | --spectral-stop-channel | SPECTRAL_STOP_CHANNEL as an integer | Optional inclusive stop channel for spectral-axis cutout, set spectral-start-channel and spectral-stop-channel to the same value for a single channel. Default is all channels. |
 | --dry-run, -n | |       perform a dry-run, where the selected fits cube will be queried for extent and size. |
 | --output | OUTPUT filename |      Output cutout FITS file |
+| --backend | BACKEND | The backend to use to perform the cutout. The two supported options are 'astropy' and 'objstore'. Default is 'astropy'. |
 
 ### Example
 
@@ -55,6 +56,13 @@ cutouts-service 180.0 -30.0 0.1 s3://example-bucket/file.fits --s3-endpoint-url 
 The CLI accepts `ra`, `dec`, `radius`, a remote FITS URL input (`http`, `https`, or `s3`), and a required `--output` path. It uses Astropy to extract a sky cutout from the source FITS file and writes the resulting FITS file to disk.
 
 For S3-compatible object stores, pass `--s3-endpoint-url` to route `s3://` requests to a custom endpoint.
+
+## Current unsupported features and caveats
+
+- The current implementation will only create a cutout from a single HDU, which is automatically detected for the Astropy backend and assumed to be the first HDU for the ObjStore backend.
+- The above point also means that extra tables (such as a multi-beam table) will not be attached in the cutout. The current implementation sets the CASAMBM header entry to False (otherwise this can cause issues with visualisers like CARTA).
+- The current version will only cutout on two physical axes (Right Ascension and Declination) and one spectral axis. A stokes axis will be copied in its entirety. Any other axes will be omitted.
+- The Objstore backend does not support more than one stokes parameter and requires a degenerate stokes axis (length of 1). The Astropy backend will handle this fine.
 
 ## Contributing
 

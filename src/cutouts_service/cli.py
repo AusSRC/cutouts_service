@@ -62,7 +62,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional inclusive start channel for spectral-axis cutout, set "
         "spectral-start-channel and spectral-stop-channel to the same value for "
-        "a single channel. Default is all channels.",
+        "a single channel. Default is all channels. Note: the channel number is "
+        "zero-indexed, i.e. enter 0 to retrieve the first channel.",
     )
     parser.add_argument(
         "--spectral-stop-channel",

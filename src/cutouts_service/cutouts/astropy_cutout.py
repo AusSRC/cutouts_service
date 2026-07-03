@@ -210,7 +210,7 @@ class AstropyCutout(Cutout):
                 )
 
             if self.dry_run:
-                self._get_cube_details(image_hdu)
+                self._get_cube_details()
             else:
                 data, header, _ = self._build_cutout(image_hdu)
         if not self.dry_run:

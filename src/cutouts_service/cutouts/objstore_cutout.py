@@ -184,6 +184,7 @@ class ObjStoreCutout(Cutout):
         self._compute_pixel_indices()
 
         if not self.check_cutout_fit():
+            self._get_cube_details()
             raise ValueError(
                 "The provided cutout configuration extends past the extents of the selected "
                 "cube. Please check the coordinates and try again. Note, the cutout will round "

@@ -132,7 +132,7 @@ class ObjStoreCutout(Cutout):
             indices["zmin"] if indices["zmin"] else 0,
             indices["zmax"] if indices["zmax"] else self.fits_shape[0] - 1,
             self.header_from_url,
-            num_threads=1,
+            num_threads=8,
         )
 
         bitpix_to_dtype = {v: k for k, v in _DTYPE_TO_BITPIX.items()}
@@ -184,6 +184,7 @@ class ObjStoreCutout(Cutout):
         self._compute_pixel_indices()
 
         if not self.check_cutout_fit():
+            self._get_cube_details()
             raise ValueError(
                 "The provided cutout configuration extends past the extents of the selected "
                 "cube. Please check the coordinates and try again. Note, the cutout will round "

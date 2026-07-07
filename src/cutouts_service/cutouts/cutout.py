@@ -1,18 +1,15 @@
 """Cutout generation helpers."""
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
-
 
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
-
-from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -117,44 +114,80 @@ class Cutout(ABC):
         self.cutout_config = cutout_config
         self.dry_run = options.dry_run
 
-        # to be set while opening remote file
-        self.source_header: dict[str, Any]
-        self.fits_shape: tuple[int, ...]
-        self.pixel_indices: dict[str, int]
-        self.axis_types: tuple[str]
+        self.source_header = self._get_header(self.io_config)
+        self.fits_shape = self._get_header_shape(self.source_header)
+        self.pixel_indices, self.axis_types = self._compute_pixel_indices(
+            self.source_header, self.cutout_config
+        )
 
-    def _set_header_shape(self, header: dict[str, Any]):
+    @abstractmethod
+    def _get_header(self, io_config: IOConfig) -> fits.Header:
+        """Get the header from the remote file
+        
+        Parameters
+        ----------
+        io_config: IOConfig
+            The config describing the source and destination parameters
+        
+        Raises
+        ------
+        NotImplementedError
+            This method is abstract and must be overwritten
+        """
+        raise NotImplementedError(
+            "This method needs to be overwritten with the specific backend header-retrieval implementation"
+        )
+
+    def _get_header_shape(self, header: fits.Header) -> tuple[int, ...]:
         """Get the shape of the fits file form the header
 
         Parameters
         ----------
-        header : dict[str, Any]
+        header : fits.Header
             The header file
 
         Returns
         -------
         tuple[int, ...]
             The shape of the fits data
+
+        Raises
+        ------
+        TypeError
+            If the header is None
         """
 
         if not header:
             raise TypeError("The header has not yet been retrieved")
         naxis = int(header.get("NAXIS", 0))
         if naxis <= 0:
-            self.fits_shape = ()
+            fits_shape = ()
         # FITS axis numbering is reverse of NumPy axis ordering.
-        self.fits_shape = tuple(
+        fits_shape = tuple(
             int(header.get(f"NAXIS{axis}", 0)) for axis in range(naxis, 0, -1)
         )
+        return fits_shape
 
-    def _compute_pixel_indices(self):
-        """Compute the array indices from the input celestial coordinates"""
+    def _compute_pixel_indices(
+        self, header: fits.Header, cutout_config: CutoutConfig
+    ) -> tuple[dict[str, int], tuple[str]]:
+        """Compute the array indices from the input celestial coordinates
+        
+        Parameters
+        ----------
+        header: fits.Header
+            The header of the fits file
+        cutout_config: CutoutConfig
+            The config describing the cutout request
+            
+        Returns
+        -------
+        tuple[dict[str, int], tuple[str]]
+            The pixel indices of the cutout relative to the fits file and the types of each axis
+        """
 
-        header = self.source_header
-        position = SkyCoord(
-            ra=self.cutout_config.ra * u.deg, dec=self.cutout_config.dec * u.deg
-        )
-        size = 2 * self.cutout_config.radius * u.deg
+        position = SkyCoord(ra=cutout_config.ra * u.deg, dec=cutout_config.dec * u.deg)
+        size = 2 * cutout_config.radius * u.deg
         wcs = WCS(fits.Header(header))
         ra_dec_min = position.spherical_offsets_by(-size / 2, -size / 2)
         ra_dec_max = position.spherical_offsets_by(size / 2, size / 2)
@@ -168,13 +201,13 @@ class Cutout(ABC):
         axis_types = tuple(
             header.get(f"CTYPE{i + 1}", "").upper() for i in range(header["NAXIS"])
         )
-        self.pixel_indices = {
+        pixel_indices = {
             "xmin": int(x_min),
             "xmax": int(x_max),
             "ymin": int(y_min),
             "ymax": int(y_max),
         }
-        self.axis_types = axis_types
+        return pixel_indices, axis_types
 
     @abstractmethod
     def create_cutout(self, overwrite: bool = False):

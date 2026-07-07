@@ -38,7 +38,13 @@ def configure_logging(level_name: str):
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Create the command line parser for cutouts requests."""
+    """Create the command line parser for cutouts requests.
+    
+    Returns
+    -------
+    argparse.ArgumentParser
+        The parser containing the command line arguments
+    """
 
     parser = argparse.ArgumentParser(description="Prepare a cutout request")
     parser.add_argument("ra", type=float, help="Right ascension in decimal degrees")
@@ -108,6 +114,8 @@ def main(argv: list[str] | None = None):
     ------
     ValueError
         If the combination of `spectral-start-channel` and `spectral-stop-channel` is inconsistent (i.e. `start` > `stop`) or if the remote URL is invalid
+    ValueError
+        If the backend argument is not one of 'astropy' or 'objstore'
     """
     args = build_parser().parse_args(argv)
     configure_logging(args.log_level)

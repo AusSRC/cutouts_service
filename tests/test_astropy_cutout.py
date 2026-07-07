@@ -1,11 +1,11 @@
+import logging
 from pathlib import Path
 
+import numpy as np
+import pytest
 from astropy.io import fits
 
-from cutouts_service.cutouts import AstropyCutout, IOConfig, CutoutConfig
-import pytest
-import numpy as np
-import logging
+from cutouts_service.cutouts import AstropyCutout, CutoutConfig, IOConfig
 
 
 def test_write_cutout_creates_output_file(tmp_path: Path, remote_fits_2d):
@@ -64,7 +64,7 @@ def test_write_cutout_applies_spectral_axis_pixel_range(tmp_path: Path, remote_f
     assert header["NAXIS4"] == 1
 
 
-def test_find_image_hdu_uses_header_metadata_without_loading_data():
+def test_find_image_hdu_uses_header_metadata_without_loading_data(remote_fits_3d):
     class FakeNonImageHDU:
         is_image = False
         name = "TABLE"
@@ -85,22 +85,26 @@ def test_find_image_hdu_uses_header_metadata_without_loading_data():
 
     image_hdu = FakeImageHDU()
     selected_hdu = AstropyCutout(
-        io_config=IOConfig("test", "test"), cutout_config=CutoutConfig(0, 0, 0)
+        io_config=IOConfig(remote_fits_3d["url"], "test"),
+        cutout_config=CutoutConfig(180, -30, 1),
     )._find_image_hdu([FakeNonImageHDU(), image_hdu])
 
     assert selected_hdu is image_hdu
 
 
 def test_open_fits_source_opens_remote_http_source(remote_fits_2d) -> None:
+    ioconfig = IOConfig(remote_fits_2d["url"], "test")
     with AstropyCutout(
-        io_config=IOConfig(remote_fits_2d["url"], "test"),
-        cutout_config=CutoutConfig(0, 0, 0),
-    )._open_fits_source() as hdul:
+        io_config=ioconfig,
+        cutout_config=CutoutConfig(180, -30, 1),
+    )._open_fits_source(ioconfig) as hdul:
         assert len(hdul) == 1
         assert hdul[0].data is not None
 
 
-def test_open_fits_source_sets_s3_endpoint_url_in_fsspec_kwargs(monkeypatch) -> None:
+def test_open_fits_source_sets_s3_endpoint_url_in_fsspec_kwargs(
+    monkeypatch, remote_fits_3d
+) -> None:
     captured: dict[str, object] = {}
 
     class DummyContext:
@@ -115,12 +119,14 @@ def test_open_fits_source_sets_s3_endpoint_url_in_fsspec_kwargs(monkeypatch) -> 
         captured["kwargs"] = kwargs
         return DummyContext()
 
+    astro_cutout = AstropyCutout(
+        IOConfig(remote_fits_3d["url"], "test"),
+        CutoutConfig(180, -30, 1),
+    )
     monkeypatch.setattr("cutouts_service.utils.fits.open", fake_open)
-
-    with AstropyCutout(
-        IOConfig("s3://bucket/catalog.fits", "test", "https://objects.example.org"),
-        CutoutConfig(1, 1, 1),
-    )._open_fits_source():
+    with astro_cutout._open_fits_source(
+        IOConfig("s3://bucket/catalog.fits", "test", "https://objects.example.org")
+    ):
         pass
 
     assert captured["source"] == "s3://bucket/catalog.fits"
@@ -143,11 +149,13 @@ def test_open_fits_source_rejects_local_files() -> None:
 
 
 def test_build_cutout_header_updates_spatial_axes(
+    remote_fits_2d,
     source_header_2d: fits.Header,
 ) -> None:
     slices = (slice(2, 6), slice(3, 7))
     cutout = AstropyCutout(
-        io_config=IOConfig("test", "test"), cutout_config=CutoutConfig(0, 0, 0)
+        io_config=IOConfig(remote_fits_2d["url"], "test"),
+        cutout_config=CutoutConfig(180, -30, 1),
     )
     cutout.source_header = source_header_2d
     cutout_header = cutout.build_cutout_header(slices, (4, 4), np.dtype("float32"))
@@ -159,7 +167,7 @@ def test_build_cutout_header_updates_spatial_axes(
     assert cutout_header["BITPIX"] == -32
 
 
-def test_build_cutout_header_preserves_cube_depth() -> None:
+def test_build_cutout_header_preserves_cube_depth(remote_fits_3d) -> None:
     source_header = fits.Header()
     source_header["NAXIS"] = 3
     source_header["NAXIS1"] = 10
@@ -170,7 +178,8 @@ def test_build_cutout_header_preserves_cube_depth() -> None:
     source_header["CRPIX3"] = 2.0
 
     cutout = AstropyCutout(
-        io_config=IOConfig("test", "test"), cutout_config=CutoutConfig(0, 0, 0)
+        io_config=IOConfig(remote_fits_3d["url"], "test"),
+        cutout_config=CutoutConfig(180, -30, 1),
     )
     cutout.source_header = source_header
 

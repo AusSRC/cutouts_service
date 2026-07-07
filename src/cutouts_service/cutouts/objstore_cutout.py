@@ -3,21 +3,16 @@
 import logging
 from pathlib import Path
 
+import numpy as np
 from astropy.io import fits
 
-from cutouts_service import FITSheader
-from cutouts_service import URLObject
-
-import numpy as np
-
-
+from cutouts_service import FITSheader, URLObject
 from cutouts_service.cutouts import (
-    IOConfig,
-    CutoutConfig,
-    Options,
     Cutout,
+    CutoutConfig,
+    IOConfig,
+    Options,
 )
-
 from cutouts_service.cutouts.cutout import _DTYPE_TO_BITPIX
 
 logger = logging.getLogger(__name__)
@@ -39,8 +34,6 @@ class ObjStoreCutout(Cutout):
     ----------
     header_from_url : FITSheader.FITSheaderFromURL
         The header in objstore native format
-    source_header : fits.Header
-        The header of the source file
     """
 
     def __init__(
@@ -49,9 +42,23 @@ class ObjStoreCutout(Cutout):
         cutout_config: CutoutConfig,
         options: Options = Options(),
     ) -> None:
+        self.header_from_url = FITSheader.FITSheaderFromURL(io_config.source)
         super().__init__(io_config, cutout_config, options)
-        self.header_from_url: FITSheader.FITSheaderFromURL
-        self.source_header: fits.Header
+
+    def _get_header(self, io_config: IOConfig) -> fits.Header:
+        """Retrieves the header from the remote fits source
+
+        Parameters
+        ----------
+        io_config : IOConfig
+            The config describing the source and destination parameters (currently unused, needed for overwriting the method)
+
+        Returns
+        -------
+        fits.Header
+            The header for the fits file
+        """
+        return self.header_from_url.getHeaderDict()
 
     def _build_cutout(
         self,
@@ -140,7 +147,7 @@ class ObjStoreCutout(Cutout):
         data = np.array(data, dtype=dtype)
         data = data.reshape(shape)
 
-        cutout_header = self.build_cutout_header(slices, shape, dtype)
+        cutout_header = self.build_cutout_header(slices, data.shape, data.dtype)
         return data, cutout_header
 
     def create_cutout(self, overwrite: bool = False) -> Path:
@@ -160,6 +167,8 @@ class ObjStoreCutout(Cutout):
         ------
         FileExistsError
             If the output file already exists and `overwrite` is set to False
+        ValueError
+            If the requested cutout falls outside of the source cube's extent
         """
         io_c = self.io_config
         co_c = self.cutout_config
@@ -177,11 +186,6 @@ class ObjStoreCutout(Cutout):
             raise FileExistsError(f"Output file already exists: {output_path}")
 
         logger.info("Opening FITS source")
-
-        self.header_from_url = FITSheader.FITSheaderFromURL(source)
-        self.source_header = self.header_from_url.getHeaderDict()
-        self._set_header_shape(self.source_header)
-        self._compute_pixel_indices()
 
         if not self.check_cutout_fit():
             self._get_cube_details()

@@ -222,9 +222,7 @@ class AstropyCutout(Cutout):
             logger.info(
                 f"Writing cutout to output FITS output_path={str(output_path)} output_shape={tuple(data.shape)}"
             )
-            fits.PrimaryHDU(data=data, header=header).writeto(
-                output_path, overwrite=overwrite
-            )
+            self.write_fits_data(data, header, output_path, overwrite)
             logger.info(f"Cutout write complete output_path={str(output_path)}")
         return output_path
 
@@ -271,3 +269,15 @@ class AstropyCutout(Cutout):
                 f"FITS source opened source={str(io_c.source)} hdu_count={hdu_count}"
             )
             yield handle
+
+    def write_fits_data(self, data, header, output_path, overwrite):
+        
+        imageHDU = fits.PrimaryHDU(data=data, header=header)
+        tabList = [imageHDU]
+        with self._open_fits_source() as hdul:
+            if len(hdul) > 1:
+                for hdu in hdul:
+                    if type(hdu) is not fits.hdu.image.PrimaryHDU:
+                        tabList.append(hdu)
+            hdulist = fits.HDUList(tabList)
+            hdulist.writeto(output_path, overwrite=overwrite)

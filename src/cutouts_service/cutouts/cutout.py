@@ -335,6 +335,18 @@ class Cutout(ABC):
         return header
     
     def set_casambm(self, header: fits.Header) -> fits.Header:
+        """Sets the CASAMBM item to False if it exists
+
+        Parameters
+        ----------
+        header : fits.Header
+            The header to adjust
+
+        Returns
+        -------
+        fits.Header
+            The adjusted header
+        """
         if header.get("CASAMBM", False):
             logger.info("Setting CASAMBM to False, this is not present in the file")
             header.set("CASAMBM", False)

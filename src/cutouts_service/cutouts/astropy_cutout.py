@@ -270,7 +270,20 @@ class AstropyCutout(Cutout):
             )
             yield handle
 
-    def write_fits_data(self, data, header, output_path, overwrite):
+    def write_fits_data(self, data: np.ndarray, header: fits.Header, output_path: str | Path, overwrite: bool):
+        """ Write the FITS data to file, copying the secondary hdus
+
+        Parameters
+        ----------
+        data : np.ndarray
+            The data to write to the Primary HDU
+        header : fits.Header
+            The header of the Primary HDU
+        output_path : str | Path
+            The path to the output file
+        overwrite : bool
+            Enable overwriting or not
+        """
         
         imageHDU = fits.PrimaryHDU(data=data, header=header)
         tabList = [imageHDU]
@@ -283,4 +296,16 @@ class AstropyCutout(Cutout):
             hdulist.writeto(output_path, overwrite=overwrite)
     
     def set_casambm(self, header: fits.Header) -> fits.Header:
+        """Overwrites parent class to do nothing
+
+        Parameters
+        ----------
+        header : fits.Header
+            The header to return
+
+        Returns
+        -------
+        fits.Header
+            The header to return
+        """
         return header

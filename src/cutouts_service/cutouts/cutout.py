@@ -300,9 +300,7 @@ class Cutout(ABC):
             header.remove(keyword="BSCALE", remove_all=True)
             header.remove(keyword="BZERO", remove_all=True)
 
-        if header.get("CASAMBM", False):
-            logger.info("Setting CASAMBM to False, this is not present in the file")
-            header.set("CASAMBM", False)
+        header = self.set_casambm(header)
 
         for numpy_axis, cutout_slice in enumerate(slices):
             fits_axis = ndim - numpy_axis
@@ -334,4 +332,10 @@ class Cutout(ABC):
             f"Cutout header build complete naxis={int(header['NAXIS'])} "
             f"shape={tuple(shape)} bitpix={int(header['BITPIX'])}"
         )
+        return header
+    
+    def set_casambm(self, header: fits.Header) -> fits.Header:
+        if header.get("CASAMBM", False):
+            logger.info("Setting CASAMBM to False, this is not present in the file")
+            header.set("CASAMBM", False)
         return header

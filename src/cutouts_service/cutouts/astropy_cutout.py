@@ -281,3 +281,6 @@ class AstropyCutout(Cutout):
                         tabList.append(hdu)
             hdulist = fits.HDUList(tabList)
             hdulist.writeto(output_path, overwrite=overwrite)
+    
+    def set_casambm(self, header: fits.Header) -> fits.Header:
+        return header

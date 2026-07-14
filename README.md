@@ -59,8 +59,7 @@ For S3-compatible object stores, pass `--s3-endpoint-url` to route `s3://` reque
 
 ## Current unsupported features and caveats
 
-- The current implementation will only create a cutout from a single HDU, which is automatically detected for the Astropy backend and assumed to be the first HDU for the ObjStore backend.
-- The above point also means that extra tables (such as a multi-beam table) will not be attached in the cutout. The current implementation sets the CASAMBM header entry to False (otherwise this can cause issues with visualisers like CARTA).
+- For the ObjectStore backend, only the first HDU will be accessed as an image. The output file will only have one HDU. The Astropy backend will perform the cutout and copy any secondary HDUs to the local FITS file. The CASAMBM entry in the header will be set to False when using the ObjStore backend, this ensures compatibility with CARTA and other visualisation applications.
 - The current version will only cutout on two physical axes (Right Ascension and Declination) and one spectral axis. A stokes axis will be copied in its entirety. Any other axes will be omitted.
 - The Objstore backend does not support more than one stokes parameter and requires a degenerate stokes axis (length of 1). The Astropy backend will handle this fine.
 - The current version will only work with presigned URLs and public URLs, private s3 objects are currently inaccessible, generate a presigned URL to access these files with `cutouts-service`. This can be done using any of:

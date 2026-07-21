@@ -23,6 +23,8 @@ This guide explains how to set up a local development environment, run checks, a
 2. Initialize submodules:
 
 ```bash
+git clone https://github.com/AusSRC/cutouts_service
+cd cutouts_service
 git submodule update --init --recursive
 ```
 

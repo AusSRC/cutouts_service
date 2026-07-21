@@ -7,6 +7,8 @@ A cutouts service to act as an alternative for the existing CASDA cutouts servic
 To set up the repository run the below commands to fetch the repository and install the development requirements.
 
 ```bash
+git clone https://github.com/AusSRC/cutouts_service
+cd cutouts_service
 git submodule update --init --recursive
 python3 -m venv .venv
 source .venv/bin/activate

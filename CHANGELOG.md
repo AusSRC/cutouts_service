@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - FITS files with multiple HDUs will now copy down secondary HDUs along with the cutout as the primary HDU
 
+## [1.0.1] - 2026-07-22
+
+### Added
+- Added requirement to upgrade pip into README.md and contributing.md
+
 ## [1.0.0] - 2026-07-03
 
 ### Added

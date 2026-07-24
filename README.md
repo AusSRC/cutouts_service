@@ -7,9 +7,12 @@ A cutouts service to act as an alternative for the existing CASDA cutouts servic
 To set up the repository run the below commands to fetch the repository and install the development requirements.
 
 ```bash
+git clone https://github.com/AusSRC/cutouts_service
+cd cutouts_service
 git submodule update --init --recursive
 python3 -m venv .venv
 source .venv/bin/activate
+pip install --upgrade pip
 pip install ".[dev]"
 ```
 
@@ -69,6 +72,9 @@ For S3-compatible object stores, pass `--s3-endpoint-url` to route `s3://` reque
     # Rclone
     rclone link alias:bucket/file.fits --expire 3600
     ```
+
+## Troubleshooting
+- There have been issues with installing this package with pip version less than 25, ensure that pip is upgraded before installing.
 
 ## Contributing
 

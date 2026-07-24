@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import threading
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-import threading
 
-from astropy.io import fits
 import numpy as np
 import pytest
+from astropy.io import fits
 from astropy.wcs import WCS
 
 
@@ -47,22 +47,27 @@ def source_header_3d() -> fits.Header:
     header["BITPIX"] = -32
     return header
 
+
 @pytest.fixture
 def beam_table():
-    table_data = np.array([[1.7200001e+01, 1.4300000e+01, 8.1239998e+01, 0, 0],
-                  [1.7400000e+01, 1.4700000e+01, 7.6949997e+01, 1, 0],
-                  [1.7500000e+01, 1.4600000e+01, 8.4230003e+01, 2, 0],
-                  [1.7299999e+01, 1.4600000e+01, 8.1400002e+01, 3, 0],
-                  [1.7700001e+01, 1.4500000e+01, 7.7349998e+01, 4, 0],
-                  [1.7500000e+01, 1.4700000e+01, 7.9250000e+01, 5, 0],
-                  [1.7400000e+01, 1.4900000e+01, 7.8629997e+01, 6, 0],
-                  [1.7600000e+01, 1.4800000e+01, 7.9059998e+01, 7, 0],
-                  [1.7400000e+01, 1.5000000e+01, 8.0629997e+01, 8, 0],
-                  [1.6700001e+01, 1.4000000e+01, 8.6949997e+01, 9, 0]])
-    table_names = ('BMAJ', 'BMIN', 'BPA', 'CHAN', 'POL')
+    table_data = np.array(
+        [
+            [1.7200001e01, 1.4300000e01, 8.1239998e01, 0, 0],
+            [1.7400000e01, 1.4700000e01, 7.6949997e01, 1, 0],
+            [1.7500000e01, 1.4600000e01, 8.4230003e01, 2, 0],
+            [1.7299999e01, 1.4600000e01, 8.1400002e01, 3, 0],
+            [1.7700001e01, 1.4500000e01, 7.7349998e01, 4, 0],
+            [1.7500000e01, 1.4700000e01, 7.9250000e01, 5, 0],
+            [1.7400000e01, 1.4900000e01, 7.8629997e01, 6, 0],
+            [1.7600000e01, 1.4800000e01, 7.9059998e01, 7, 0],
+            [1.7400000e01, 1.5000000e01, 8.0629997e01, 8, 0],
+            [1.6700001e01, 1.4000000e01, 8.6949997e01, 9, 0],
+        ]
+    )
+    table_names = ("BMAJ", "BMIN", "BPA", "CHAN", "POL")
     cols = []
     for i, name in enumerate(table_names):
-        col = fits.Column(name=name, array=table_data[:, i], format='K')
+        col = fits.Column(name=name, array=table_data[:, i], format="K")
         cols.append(col)
     return fits.BinTableHDU.from_columns(cols)
 
@@ -128,8 +133,11 @@ def remote_fits_3d_objstore(http_file_server, source_header_3d: fits.Header):
         "header": source_header_3d_objstore,
     }
 
+
 @pytest.fixture
-def remote_fits_3d_multitable(http_file_server, source_header_3d: fits.Header, beam_table):
+def remote_fits_3d_multitable(
+    http_file_server, source_header_3d: fits.Header, beam_table
+):
     root = http_file_server["root"]
     base_url = http_file_server["base_url"]
     source_header_3d.set("CASAMBM", True)

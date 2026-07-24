@@ -1,18 +1,16 @@
 """Cutout generation helpers."""
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
 
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
-
-from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -110,9 +108,11 @@ class Cutout(ABC):
         self,
         io_config: IOConfig,
         cutout_config: CutoutConfig,
-        options: Options = Options(),
+        options: Options | None = None,
     ) -> None:
         # input attributes
+        if options is None:
+            options = Options()
         self.io_config = io_config
         self.cutout_config = cutout_config
         self.dry_run = options.dry_run
@@ -209,10 +209,7 @@ class Cutout(ABC):
             return False
         if cutout_indices["ymin"] < 0 or cutout_indices["ymax"] > (shape[1] - 1):
             return False
-        if chans[0] is not None and chans[1] is not None:
-            if chans[0] < 0 or chans[1] > (shape[-1] - 1):
-                return False
-        return True
+        return not ((chans[0] is not None and chans[1] is not None) and (chans[0] < 0 or chans[1] > shape[-1] - 1))
 
     def _get_cube_details(self):
         """Query and print key Cube details from header"""
@@ -283,7 +280,7 @@ class Cutout(ABC):
         """
         logger.info(
             f"Building cutout header source_naxis={int(self.source_header.get('NAXIS', len(shape)))} "
-            f"shape={tuple(shape)} slices={repr(slices)} section_dtype={getattr(section_dtype, 'name', str(section_dtype))}"
+            f"shape={tuple(shape)} slices={slices!r} section_dtype={getattr(section_dtype, 'name', str(section_dtype))}"
         )
         header = fits.Header(self.source_header.copy())
         ndim = len(shape)
@@ -333,7 +330,7 @@ class Cutout(ABC):
             f"shape={tuple(shape)} bitpix={int(header['BITPIX'])}"
         )
         return header
-    
+
     def set_casambm(self, header: fits.Header) -> fits.Header:
         """Sets the CASAMBM item to False if it exists
 

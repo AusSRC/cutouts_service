@@ -1,11 +1,11 @@
+import logging
 from pathlib import Path
 
+import numpy as np
+import pytest
 from astropy.io import fits
 
-from cutouts_service.cutouts import AstropyCutout, IOConfig, CutoutConfig
-import pytest
-import numpy as np
-import logging
+from cutouts_service.cutouts import AstropyCutout, CutoutConfig, IOConfig
 
 
 def test_write_cutout_creates_output_file(tmp_path: Path, remote_fits_2d):
@@ -135,11 +135,10 @@ def test_open_fits_source_sets_s3_endpoint_url_in_fsspec_kwargs(monkeypatch) -> 
 
 
 def test_open_fits_source_rejects_local_files() -> None:
-    with pytest.raises(ValueError, match="remote FITS URL"):
-        with AstropyCutout(
-            IOConfig("./catalog.fits", "test"), CutoutConfig(1, 1, 1)
-        )._open_fits_source():
-            pass
+    with pytest.raises(ValueError, match="remote FITS URL"), AstropyCutout(
+        IOConfig("./catalog.fits", "test"), CutoutConfig(1, 1, 1)
+    )._open_fits_source():
+        pass
 
 
 def test_build_cutout_header_updates_spatial_axes(
@@ -209,11 +208,12 @@ def test_fail_on_out_of_bounds(tmp_path: Path, remote_fits_3d):
     with pytest.raises(ValueError, match=error_text):
         AstropyCutout(io_config, cutout_config).create_cutout()
 
+
 def test_write_multitable_hdu(tmp_path: Path, remote_fits_3d_multitable):
     output_file = tmp_path / "cutout_cube.fits"
     source_url = remote_fits_3d_multitable["url"]
     io_config = IOConfig(source_url, output_file)
-    cutout_config = CutoutConfig(180, -30, 2, (2,3))
+    cutout_config = CutoutConfig(180, -30, 2, (2, 3))
     cutout = AstropyCutout(io_config, cutout_config)
     cutout.create_cutout()
 

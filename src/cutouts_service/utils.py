@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-
 import logging
 from pathlib import Path
 from urllib.parse import urlparse
 
-from astropy.io import fits
 import validators
+from astropy.io import fits
 
 ImageLikeHDU = fits.PrimaryHDU | fits.ImageHDU | fits.CompImageHDU
 logger = logging.getLogger(__name__)

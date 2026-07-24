@@ -5,12 +5,11 @@ import logging
 
 from cutouts_service.cutouts import (
     AstropyCutout,
-    IOConfig,
     CutoutConfig,
-    Options,
+    IOConfig,
     ObjStoreCutout,
+    Options,
 )
-
 
 logger = logging.getLogger(__name__)
 ARCMIN_PER_DEG = 60.0
@@ -125,7 +124,7 @@ def main(argv: list[str] | None = None):
         raise ValueError(
             "--spectral-stop-channel must be greater than or equal to --spectral-start-channel"
         )
-    if args.backend not in BACKENDS.keys():
+    if args.backend not in BACKENDS:
         raise ValueError(
             f"The --backend argument must be one of {', '.join(BACKENDS.keys())}"
         )

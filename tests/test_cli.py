@@ -3,8 +3,7 @@ from pathlib import Path
 from astropy.io import fits
 from pytest import raises
 
-from cutouts_service.cli import build_parser
-from cutouts_service.cli import main
+from cutouts_service.cli import build_parser, main
 from cutouts_service.utils import is_remote_source
 
 

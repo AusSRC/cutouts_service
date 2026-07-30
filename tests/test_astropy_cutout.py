@@ -141,9 +141,12 @@ def test_open_fits_source_sets_s3_endpoint_url_in_fsspec_kwargs(
 
 
 def test_open_fits_source_rejects_local_files() -> None:
-    with pytest.raises(ValueError, match="remote FITS URL"), AstropyCutout(
-        IOConfig("./catalog.fits", "test"), CutoutConfig(1, 1, 1)
-    )._open_fits_source():
+    with (
+        pytest.raises(ValueError, match="remote FITS URL"),
+        AstropyCutout(
+            IOConfig("./catalog.fits", "test"), CutoutConfig(1, 1, 1)
+        ),
+    ):
         pass
 
 

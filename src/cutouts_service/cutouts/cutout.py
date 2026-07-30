@@ -125,12 +125,12 @@ class Cutout(ABC):
     @abstractmethod
     def _get_header(self, io_config: IOConfig) -> fits.Header:
         """Get the header from the remote file
-        
+
         Parameters
         ----------
         io_config: IOConfig
             The config describing the source and destination parameters
-        
+
         Raises
         ------
         NotImplementedError
@@ -174,14 +174,14 @@ class Cutout(ABC):
         self, header: fits.Header, cutout_config: CutoutConfig
     ) -> tuple[dict[str, int], tuple[str]]:
         """Compute the array indices from the input celestial coordinates
-        
+
         Parameters
         ----------
         header: fits.Header
             The header of the fits file
         cutout_config: CutoutConfig
             The config describing the cutout request
-            
+
         Returns
         -------
         tuple[dict[str, int], tuple[str]]
@@ -244,7 +244,10 @@ class Cutout(ABC):
             return False
         if cutout_indices["ymin"] < 0 or cutout_indices["ymax"] > (shape[1] - 1):
             return False
-        return not ((chans[0] is not None and chans[1] is not None) and (chans[0] < 0 or chans[1] > shape[-1] - 1))
+        return not (
+            (chans[0] is not None and chans[1] is not None)
+            and (chans[0] < 0 or chans[1] > shape[-1] - 1)
+        )
 
     def _get_cube_details(self):
         """Query and print key Cube details from header"""

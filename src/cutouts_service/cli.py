@@ -38,7 +38,7 @@ def configure_logging(level_name: str):
 
 def build_parser() -> argparse.ArgumentParser:
     """Create the command line parser for cutouts requests.
-    
+
     Returns
     -------
     argparse.ArgumentParser

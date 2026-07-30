@@ -249,7 +249,7 @@ class AstropyCutout(Cutout):
             The returned fits file handle is not an HDUList
         """
         io_c = io_config
-        logger.info(f"Opening FITS source source={str(io_c.source)}")
+        logger.info(f"Opening FITS source source={io_c.source!s}")
         if not is_remote_source(io_c.source):
             logger.error(f"Rejected non-remote FITS source source={io_c.source!s}")
             raise ValueError("A remote FITS URL is required")
@@ -301,7 +301,7 @@ class AstropyCutout(Cutout):
 
         imageHDU = fits.PrimaryHDU(data=data, header=header)
         tabList = [imageHDU]
-        with self._open_fits_source() as hdul:
+        with self._open_fits_source(self.io_config) as hdul:
             if len(hdul) > 1:
                 for hdu in hdul:
                     if type(hdu) is not fits.hdu.image.PrimaryHDU:

@@ -7,9 +7,12 @@ A cutouts service to act as an alternative for the existing CASDA cutouts servic
 To set up the repository run the below commands to fetch the repository and install the development requirements.
 
 ```bash
+git clone https://github.com/AusSRC/cutouts_service
+cd cutouts_service
 git submodule update --init --recursive
 python3 -m venv .venv
 source .venv/bin/activate
+pip install --upgrade pip
 pip install ".[dev]"
 ```
 
@@ -59,8 +62,7 @@ For S3-compatible object stores, pass `--s3-endpoint-url` to route `s3://` reque
 
 ## Current unsupported features and caveats
 
-- The current implementation will only create a cutout from a single HDU, which is automatically detected for the Astropy backend and assumed to be the first HDU for the ObjStore backend.
-- The above point also means that extra tables (such as a multi-beam table) will not be attached in the cutout. The current implementation sets the CASAMBM header entry to False (otherwise this can cause issues with visualisers like CARTA).
+- For the ObjectStore backend, only the first HDU will be accessed as an image. The output file will only have one HDU. The Astropy backend will perform the cutout and copy any secondary HDUs to the local FITS file. The CASAMBM entry in the header will be set to False when using the ObjStore backend, this ensures compatibility with CARTA and other visualisation applications.
 - The current version will only cutout on two physical axes (Right Ascension and Declination) and one spectral axis. A stokes axis will be copied in its entirety. Any other axes will be omitted.
 - The Objstore backend does not support more than one stokes parameter and requires a degenerate stokes axis (length of 1). The Astropy backend will handle this fine.
 - The current version will only work with presigned URLs and public URLs, private s3 objects are currently inaccessible, generate a presigned URL to access these files with `cutouts-service`. This can be done using any of:
@@ -70,6 +72,9 @@ For S3-compatible object stores, pass `--s3-endpoint-url` to route `s3://` reque
     # Rclone
     rclone link alias:bucket/file.fits --expire 3600
     ```
+
+## Troubleshooting
+- There have been issues with installing this package with pip version less than 25, ensure that pip is upgraded before installing.
 
 ## Contributing
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cutouts-service"
-version = "1.0.0"
+version = "1.0.2"
 description = "A basic CLI scaffold for cutouts requests."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -26,7 +26,7 @@ cutouts-service = "cutouts_service.cli:main"
 
 [project.optional-dependencies]
 dev = [
-  "ruff==0.11.6",
+  "ruff==0.16.0",
   "pytest==8.3.5",
   "build==1.2.2.post1",
   "pytest-cov>=7.1.0"

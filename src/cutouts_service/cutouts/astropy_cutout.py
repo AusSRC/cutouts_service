@@ -38,8 +38,10 @@ class AstropyCutout(Cutout):
         self,
         io_config: IOConfig,
         cutout_config: CutoutConfig,
-        options: Options = Options(),
+        options: Options | None = None,
     ) -> None:
+        if options is None:
+            options = Options()
         super().__init__(io_config, cutout_config, options)
 
     def _get_header(self, io_config) -> fits.Header:
@@ -191,7 +193,7 @@ class AstropyCutout(Cutout):
 
         output_path = Path(io_c.output_path)
         logger.info(
-            f"Preparing cutout request source={str(source)} output_path={str(output_path)} "
+            f"Preparing cutout request source={source!s} output_path={output_path!s} "
             f"ra_deg={co_c.ra} dec_deg={co_c.dec} radius_deg={co_c.radius} s3_endpoint_url={s3_endpoint_url} "
             f"spectral_start_pixel={co_c.channel_range[0]} spectral_stop_pixel={co_c.channel_range[1]} overwrite={overwrite}"
         )
@@ -215,18 +217,14 @@ class AstropyCutout(Cutout):
                 image_hdu = self._find_image_hdu(hdul)
                 data, header, _ = self._build_cutout(image_hdu)
             logger.info(
-                f"Ensuring output directory exists output_directory={str(output_path.parent)}"
+                f"Ensuring output directory exists output_directory={output_path.parent!s}"
             )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             logger.info(
-                f"Writing cutout to output FITS output_path={str(output_path)} output_shape={tuple(data.shape)}"
+                f"Writing cutout to output FITS output_path={output_path!s} output_shape={tuple(data.shape)}"
             )
-            fits.PrimaryHDU(data=data, header=header).writeto(
-                output_path, overwrite=overwrite
-            )
-            logger.info(f"Cutout write complete output_path={str(output_path)}")
-        else:
-            self._get_cube_details()
+            self.write_fits_data(data, header, output_path, overwrite)
+            logger.info(f"Cutout write complete output_path={output_path!s}")
         return output_path
 
     @contextmanager
@@ -253,7 +251,7 @@ class AstropyCutout(Cutout):
         io_c = io_config
         logger.info(f"Opening FITS source source={str(io_c.source)}")
         if not is_remote_source(io_c.source):
-            logger.error(f"Rejected non-remote FITS source source={str(io_c.source)}")
+            logger.error(f"Rejected non-remote FITS source source={io_c.source!s}")
             raise ValueError("A remote FITS URL is required")
 
         open_args = (io_c.source,)
@@ -266,7 +264,7 @@ class AstropyCutout(Cutout):
             open_kwargs["fsspec_kwargs"] = fsspec_kwargs
 
         logger.info(
-            f"Calling astropy.io.fits.open source={str(io_c.source)} open_kwargs={open_kwargs}"
+            f"Calling astropy.io.fits.open source={io_c.source!s} open_kwargs={open_kwargs}"
         )
 
         with fits.open(*open_args, **open_kwargs) as handle:
@@ -276,6 +274,52 @@ class AstropyCutout(Cutout):
                 hdu_count = None
 
             logger.info(
-                f"FITS source opened source={str(io_c.source)} hdu_count={hdu_count}"
+                f"FITS source opened source={io_c.source!s} hdu_count={hdu_count}"
             )
             yield handle
+
+    def write_fits_data(
+        self,
+        data: np.ndarray,
+        header: fits.Header,
+        output_path: str | Path,
+        overwrite: bool,
+    ):
+        """Write the FITS data to file, copying the secondary hdus
+
+        Parameters
+        ----------
+        data : np.ndarray
+            The data to write to the Primary HDU
+        header : fits.Header
+            The header of the Primary HDU
+        output_path : str | Path
+            The path to the output file
+        overwrite : bool
+            Enable overwriting or not
+        """
+
+        imageHDU = fits.PrimaryHDU(data=data, header=header)
+        tabList = [imageHDU]
+        with self._open_fits_source() as hdul:
+            if len(hdul) > 1:
+                for hdu in hdul:
+                    if type(hdu) is not fits.hdu.image.PrimaryHDU:
+                        tabList.append(hdu)
+            hdulist = fits.HDUList(tabList)
+            hdulist.writeto(output_path, overwrite=overwrite)
+
+    def set_casambm(self, header: fits.Header) -> fits.Header:
+        """Overwrites parent class to do nothing
+
+        Parameters
+        ----------
+        header : fits.Header
+            The header to return
+
+        Returns
+        -------
+        fits.Header
+            The header to return
+        """
+        return header

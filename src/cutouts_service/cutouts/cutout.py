@@ -107,9 +107,11 @@ class Cutout(ABC):
         self,
         io_config: IOConfig,
         cutout_config: CutoutConfig,
-        options: Options = Options(),
+        options: Options | None = None,
     ) -> None:
         # input attributes
+        if options is None:
+            options = Options()
         self.io_config = io_config
         self.cutout_config = cutout_config
         self.dry_run = options.dry_run
@@ -242,10 +244,7 @@ class Cutout(ABC):
             return False
         if cutout_indices["ymin"] < 0 or cutout_indices["ymax"] > (shape[1] - 1):
             return False
-        if chans[0] is not None and chans[1] is not None:
-            if chans[0] < 0 or chans[1] > (shape[-1] - 1):
-                return False
-        return True
+        return not ((chans[0] is not None and chans[1] is not None) and (chans[0] < 0 or chans[1] > shape[-1] - 1))
 
     def _get_cube_details(self):
         """Query and print key Cube details from header"""
@@ -316,7 +315,7 @@ class Cutout(ABC):
         """
         logger.info(
             f"Building cutout header source_naxis={int(self.source_header.get('NAXIS', len(shape)))} "
-            f"shape={tuple(shape)} slices={repr(slices)} section_dtype={getattr(section_dtype, 'name', str(section_dtype))}"
+            f"shape={tuple(shape)} slices={slices!r} section_dtype={getattr(section_dtype, 'name', str(section_dtype))}"
         )
         header = fits.Header(self.source_header.copy())
         ndim = len(shape)
@@ -333,9 +332,7 @@ class Cutout(ABC):
             header.remove(keyword="BSCALE", remove_all=True)
             header.remove(keyword="BZERO", remove_all=True)
 
-        if header.get("CASAMBM", False):
-            logger.info("Setting CASAMBM to False, this is not present in the file")
-            header.set("CASAMBM", False)
+        header = self.set_casambm(header)
 
         for numpy_axis, cutout_slice in enumerate(slices):
             fits_axis = ndim - numpy_axis
@@ -367,4 +364,22 @@ class Cutout(ABC):
             f"Cutout header build complete naxis={int(header['NAXIS'])} "
             f"shape={tuple(shape)} bitpix={int(header['BITPIX'])}"
         )
+        return header
+
+    def set_casambm(self, header: fits.Header) -> fits.Header:
+        """Sets the CASAMBM item to False if it exists
+
+        Parameters
+        ----------
+        header : fits.Header
+            The header to adjust
+
+        Returns
+        -------
+        fits.Header
+            The adjusted header
+        """
+        if header.get("CASAMBM", False):
+            logger.info("Setting CASAMBM to False, this is not present in the file")
+            header.set("CASAMBM", False)
         return header

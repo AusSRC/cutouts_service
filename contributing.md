@@ -23,6 +23,8 @@ This guide explains how to set up a local development environment, run checks, a
 2. Initialize submodules:
 
 ```bash
+git clone https://github.com/AusSRC/cutouts_service
+cd cutouts_service
 git submodule update --init --recursive
 ```
 
@@ -54,8 +56,11 @@ If you prefer standard Python tooling:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+pip install --upgrade pip
 pip install ".[dev]"
 ```
+> **Note**:
+>*There have been issues with installing this package with pip version less than 25, ensure that pip is upgraded before installing.*
 
 ## Run checks locally
 

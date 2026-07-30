@@ -1,5 +1,6 @@
-from cutouts_service.utils import is_remote_source
 import logging
+
+from cutouts_service.utils import is_remote_source
 
 logger = logging.getLogger(__name__)
 logger.propagate = True

@@ -40,8 +40,10 @@ class ObjStoreCutout(Cutout):
         self,
         io_config: IOConfig,
         cutout_config: CutoutConfig,
-        options: Options = Options(),
+        options: Options | None = None,
     ) -> None:
+        if options is None:
+            options = Options()
         self.header_from_url = FITSheader.FITSheaderFromURL(io_config.source)
         super().__init__(io_config, cutout_config, options)
 
@@ -178,7 +180,7 @@ class ObjStoreCutout(Cutout):
 
         output_path = Path(io_c.output_path)
         logger.info(
-            f"Preparing cutout request source={str(source)} output_path={str(output_path)} "
+            f"Preparing cutout request source={source!s} output_path={output_path!s} "
             f"ra_deg={co_c.ra} dec_deg={co_c.dec} radius_deg={co_c.radius} s3_endpoint_url={s3_endpoint_url} "
             f"spectral_start_pixel={co_c.channel_range[0]} spectral_stop_pixel={co_c.channel_range[1]} overwrite={overwrite}"
         )
@@ -200,14 +202,14 @@ class ObjStoreCutout(Cutout):
         else:
             data, header = self._build_cutout(str(source))
             logger.info(
-                f"Ensuring output directory exists output_directory={str(output_path.parent)}"
+                f"Ensuring output directory exists output_directory={output_path.parent!s}"
             )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             logger.info(
-                f"Writing cutout to output FITS output_path={str(output_path)} output_shape={tuple(data.shape)}"
+                f"Writing cutout to output FITS output_path={output_path!s} output_shape={tuple(data.shape)}"
             )
             fits.PrimaryHDU(data=data, header=header).writeto(
                 output_path, overwrite=overwrite
             )
-            logger.info(f"Cutout write complete output_path={str(output_path)}")
+            logger.info(f"Cutout write complete output_path={output_path!s}")
         return output_path

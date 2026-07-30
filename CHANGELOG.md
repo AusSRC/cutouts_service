@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Set cutout objects to initialise header information at creation rather than during the cutout.
 
+## [1.0.2] - 2026-07-24
+
+### Changed
+- updated ruff dependency to 0.16.0
+
+### Fixed
+- FITS files with multiple HDUs will now copy down secondary HDUs along with the cutout as the primary HDU
+- Ensured CASAMBM header card matches the HDU list
+
+## [1.0.1] - 2026-07-22
+
+### Added
+- Added requirement to upgrade pip into README.md and contributing.md
+
 ## [1.0.0] - 2026-07-03
 
 ### Added

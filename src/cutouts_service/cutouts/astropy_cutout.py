@@ -32,11 +32,6 @@ class AstropyCutout(Cutout):
         The config describing the cutout details (eg. pointing)
     options : Options
         The extra options, currently contains only dry_run
-
-    Attributes
-    ----------
-    source_header: fits.Header
-        The header of the source file
     """
 
     def __init__(
@@ -48,7 +43,23 @@ class AstropyCutout(Cutout):
         if options is None:
             options = Options()
         super().__init__(io_config, cutout_config, options)
-        self.source_header: fits.Header
+
+    def _get_header(self, io_config) -> fits.Header:
+        """Get the header from the remote fits file.
+
+        Parameters
+        ----------
+        io_config : IOConfig
+            The config describing the source and destination IO parameters
+
+        Returns
+        -------
+        fits.Header
+            The header of the remote fits file
+        """
+        with self._open_fits_source(io_config) as hdulist:
+            imag_hdu = self._find_image_hdu(hdulist)
+            return imag_hdu.header
 
     def _find_image_hdu(self, hdul: fits.HDUList) -> ImageLikeHDU:
         """Find the HDU that contains the image data, useful if there are more than one HDU within the HDUList
@@ -76,9 +87,7 @@ class AstropyCutout(Cutout):
             header = getattr(hdu, "header", None)
             if header is None:
                 continue
-
-            self._set_header_shape(header)
-            source_shape = self.fits_shape
+            source_shape = self._get_header_shape(header)
             if not source_shape:
                 continue
             if any(axis_len <= 0 for axis_len in source_shape):
@@ -192,27 +201,23 @@ class AstropyCutout(Cutout):
             raise FileExistsError(f"Output file already exists: {output_path}")
 
         logger.info("Opening FITS source")
-        with self._open_fits_source() as hdul:
-            logger.info(f"Opened FITS source hdu_count={len(hdul)}")
 
-            # set unset attributes
-            image_hdu = self._find_image_hdu(hdul)
-            self.source_header = image_hdu.header
+        self._compute_pixel_indices(self.source_header, self.cutout_config)
+        if not self.check_cutout_fit():
+            self._get_cube_details()
+            raise ValueError(
+                "The provided cutout configuration extends past the extents of "
+                "the selected cube. Please check the coordinates and try again."
+                " Note, the cutout will round to the outer edge of the pixels."
+            )
 
-            self._compute_pixel_indices()
-            if not self.check_cutout_fit():
-                self._get_cube_details()
-                raise ValueError(
-                    "The provided cutout configuration extends past the extents of "
-                    "the selected cube. Please check the coordinates and try again."
-                    " Note, the cutout will round to the outer edge of the pixels."
-                )
-
-            if self.dry_run:
-                self._get_cube_details()
-            else:
+        if self.dry_run:
+            self._get_cube_details()
+        else:
+            with self._open_fits_source(self.io_config) as hdul:
+                logger.info(f"Opened FITS source hdu_count={len(hdul)}")
+                image_hdu = self._find_image_hdu(hdul)
                 data, header, _ = self._build_cutout(image_hdu)
-        if not self.dry_run:
             logger.info(
                 f"Ensuring output directory exists output_directory={output_path.parent!s}"
             )
@@ -225,8 +230,13 @@ class AstropyCutout(Cutout):
         return output_path
 
     @contextmanager
-    def _open_fits_source(self):
+    def _open_fits_source(self, io_config: IOConfig):
         """Open the fits source, closing when done
+
+        Parameters
+        ----------
+        io_config: IOConfig
+            The config describing the source and destination parameters
 
         Yields
         ------
@@ -237,8 +247,10 @@ class AstropyCutout(Cutout):
         ------
         ValueError
             The input file is not a remote file
+        TypeError
+            The returned fits file handle is not an HDUList
         """
-        io_c = self.io_config
+        io_c = io_config
         logger.info(f"Opening FITS source source={io_c.source!s}")
         if not is_remote_source(io_c.source):
             logger.error(f"Rejected non-remote FITS source source={io_c.source!s}")
@@ -291,7 +303,7 @@ class AstropyCutout(Cutout):
 
         imageHDU = fits.PrimaryHDU(data=data, header=header)
         tabList = [imageHDU]
-        with self._open_fits_source() as hdul:
+        with self._open_fits_source(self.io_config) as hdul:
             if len(hdul) > 1:
                 for hdu in hdul:
                     if type(hdu) is not fits.hdu.image.PrimaryHDU:

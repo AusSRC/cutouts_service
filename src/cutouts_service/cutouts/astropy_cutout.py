@@ -211,7 +211,9 @@ class AstropyCutout(Cutout):
                 " Note, the cutout will round to the outer edge of the pixels."
             )
 
-        if not self.dry_run:
+        if self.dry_run:
+            self._get_cube_details()
+        else:
             with self._open_fits_source(self.io_config) as hdul:
                 logger.info(f"Opened FITS source hdu_count={len(hdul)}")
                 image_hdu = self._find_image_hdu(hdul)

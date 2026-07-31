@@ -34,8 +34,8 @@ usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DE
 |:----------:|:-------------|
 | ra | Right ascension in decimal degrees |
 | dec | Declination in decimal degrees |
-| radius | Cutout radius in arcminutes |
-|file | Input file path or URL |
+| radius | Cutout radius in arcminutes ( Note: This returns a square cutout, not circular ) |
+|file | Input URL to remote source file |
 
 | Option | Expected Value | Description |
 |:------:|:--------------:|:------------|
@@ -72,6 +72,8 @@ For S3-compatible object stores, pass `--s3-endpoint-url` to route `s3://` reque
     # Rclone
     rclone link alias:bucket/file.fits --expire 3600
     ```
+ - The current implementation only supports remote cubes (urls) and does not take cutouts from local files for either Astropy or ObjStore backend implementations.
+ - The ObjStore backend currently has a very large overhead for retrieving data from presigned-urls. This can be very inefficient for small cutouts.
 
 ## Troubleshooting
 - There have been issues with installing this package with pip version less than 25, ensure that pip is upgraded before installing.

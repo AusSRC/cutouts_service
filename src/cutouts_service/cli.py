@@ -48,8 +48,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Prepare a cutout request")
     parser.add_argument("ra", type=float, help="Right ascension in decimal degrees")
     parser.add_argument("dec", type=float, help="Declination in decimal degrees")
-    parser.add_argument("radius", type=float, help="Cutout radius in arcminutes")
-    parser.add_argument("file", help="Input file path or URL")
+    parser.add_argument("radius", type=float, help="Cutout radius in arcminutes ( Note: This returns a square cutout, not circular )")
+    parser.add_argument("file", help="Input URL to remote source file")
     parser.add_argument(
         "--s3-endpoint-url",
         default=None,

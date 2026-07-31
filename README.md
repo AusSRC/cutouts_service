@@ -34,8 +34,8 @@ usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DE
 |:----------:|:-------------|
 | ra | Right ascension in decimal degrees |
 | dec | Declination in decimal degrees |
-| radius | Cutout radius in arcminutes |
-|file | Input file path or URL |
+| radius | Cutout radius in arcminutes ( Note: This returns a square cutout, not circular ) |
+|file | Input URL to remote source file |
 
 | Option | Expected Value | Description |
 |:------:|:--------------:|:------------|

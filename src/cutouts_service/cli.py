@@ -9,11 +9,13 @@ from cutouts_service.cutouts import (
     IOConfig,
     ObjStoreCutout,
     Options,
+    SPECTRAL_UNITS,
 )
 
 logger = logging.getLogger(__name__)
 ARCMIN_PER_DEG = 60.0
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
 BACKENDS = {"astropy": AstropyCutout, "objstore": ObjStoreCutout}
 
 
@@ -62,31 +64,33 @@ def build_parser() -> argparse.ArgumentParser:
         help="Logging verbosity level (default: INFO)",
     )
     parser.add_argument(
-        "--spectral-start-channel",
-        type=int,
-        default=None,
-        help="Optional inclusive start channel for spectral-axis cutout, set "
-        "spectral-start-channel and spectral-stop-channel to the same value for "
-        "a single channel. Default is all channels. Note: the channel number is "
-        "zero-indexed, i.e. enter 0 to retrieve the first channel.",
+        "--spectral-units",
+        choices=SPECTRAL_UNITS,
+        default="channels",
+        help=f"The unit selection for specifying the spectral bounds, can be one of {SPECTRAL_UNITS}, default is `channels`."
     )
     parser.add_argument(
-        "--spectral-stop-channel",
-        type=int,
+        "--spectral-min",
+        type=float,
         default=None,
-        help="Optional inclusive stop channel for spectral-axis cutout, set "
-        "spectral-start-channel and spectral-stop-channel to the same value for "
-        "a single channel. Default is all channels.",
+        help="The lower bound of the cutout request along the spectral axis, the units are specified by the `--spectral-unit` option. Default is to request all channels. Note: the channel number is zero-indexed, i.e. enter 0 to retrieve the first channel.",
     )
     parser.add_argument(
-        "--dry-run",
+        "--spectral-max",
+        type=float,
+        default=None,
+        help="The lower bound of the cutout request along the spectral axis, the units are specified by the `--spectral-unit` option. Default is to request all channels. Note: the channel number is zero-indexed, i.e. enter 0 to retrieve the first channel.",
+    )
+    parser.add_argument(
         "-n",
+        "--dry-run",
         action="store_true",
         help="perform a dry-run, where the selected fits cube will be queried for extent and size.",
     )
     parser.add_argument("--output", required=True, help="Output cutout FITS file")
     parser.add_argument(
         "--backend",
+        choices=BACKENDS.keys(),
         default="astropy",
         help="The backend to use to perform the cutout. The two supported options are 'astropy' and 'objstore'. Default is 'astropy'.",
     )
@@ -100,9 +104,9 @@ def main(argv: list[str] | None = None):
     -------
     The service can be run using::
 
-        cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-start-channel SPECTRAL_START_CHANNEL]
-            [--spectral-stop-channel SPECTRAL_STOP_CHANNEL] [--dry-run] --output OUTPUT [--backend BACKEND]
-            ra dec radius file
+        cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-unit {channels,Hz,KHz,MHz,GHz}] [--spectral-min SPECTRAL_MIN]
+                       [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT [--backend {astropy,objstore}]
+                       ra dec radius file
 
     Parameters
     ----------
@@ -112,7 +116,7 @@ def main(argv: list[str] | None = None):
     Raises
     ------
     ValueError
-        If the combination of `spectral-start-channel` and `spectral-stop-channel` is inconsistent (i.e. `start` > `stop`) or if the remote URL is invalid
+        If the combination of `spectral-min` and `spectral-max` is inconsistent (i.e. `start` > `stop`) or if the remote URL is invalid
     ValueError
         If the backend argument is not one of 'astropy' or 'objstore'
     """
@@ -121,16 +125,16 @@ def main(argv: list[str] | None = None):
 
     logger.info("Parsing CLI arguments")
     radius_deg = args.radius / ARCMIN_PER_DEG
-    if (args.spectral_start_channel is None) != (args.spectral_stop_channel is None):
+    if (args.spectral_min is None) != (args.spectral_max is None):
         raise ValueError(
-            "Both --spectral-start-channel and --spectral-stop-channel must be provided together"
+            "Both --spectral-min and --spectral-max must be provided together"
         )
     if (
-        args.spectral_start_channel is not None
-        and args.spectral_stop_channel < args.spectral_start_channel
+        args.spectral_min is not None
+        and args.spectral_max < args.spectral_min
     ):
         raise ValueError(
-            "--spectral-stop-channel must be greater than or equal to --spectral-start-channel"
+            "--spectral-min must be greater than or equal to --spectral-max"
         )
     if args.backend not in BACKENDS:
         raise ValueError(
@@ -140,7 +144,7 @@ def main(argv: list[str] | None = None):
     logger.info(
         f"Received cutout request ra_deg={args.ra} dec_deg={args.dec} "
         f"radius_arcmin={args.radius} radius_deg={radius_deg} source={args.file} output_path={args.output} "
-        f"spectral_start_pixel={args.spectral_start_channel} spectral_stop_pixel={args.spectral_stop_channel}"
+        f"spectral_min={args.spectral_min} spectral_max={args.spectral_max} spectral_units={args.spectral_units}"
     )
 
     logger.info("Starting cutout write")
@@ -149,7 +153,8 @@ def main(argv: list[str] | None = None):
         args.ra,
         args.dec,
         radius_deg,
-        (args.spectral_start_channel, args.spectral_stop_channel),
+        (args.spectral_min, args.spectral_max),
+        args.spectral_units,
     )
     options = Options(args.dry_run)
     try:

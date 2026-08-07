@@ -123,7 +123,6 @@ class AstropyCutout(Cutout):
         ra = self.cutout_config.ra
         dec = self.cutout_config.dec
         radius = self.cutout_config.radius
-        channel_range = self.cutout_config.channel_range
         header = self.source_header
         source_shape = self.fits_shape
 
@@ -145,16 +144,7 @@ class AstropyCutout(Cutout):
             elif "DEC" in ctype:
                 slices.append(slice(indices["ymin"], indices["ymax"] + 1))
             elif "FREQ" in ctype:
-                slices.append(
-                    slice(
-                        channel_range[0],
-                        (
-                            channel_range[1]
-                            if channel_range[1] is None
-                            else channel_range[1] + 1
-                        ),
-                    )
-                )
+                slices.append(slice(indices["zmin"], (indices["zmax"] + 1 if indices["zmax"] is not None else None)))
             elif "STOKES" in ctype:
                 slices.append(slice(None))
 
@@ -195,7 +185,7 @@ class AstropyCutout(Cutout):
         logger.info(
             f"Preparing cutout request source={source!s} output_path={output_path!s} "
             f"ra_deg={co_c.ra} dec_deg={co_c.dec} radius_deg={co_c.radius} s3_endpoint_url={s3_endpoint_url} "
-            f"spectral_start_pixel={co_c.channel_range[0]} spectral_stop_pixel={co_c.channel_range[1]} overwrite={overwrite}"
+            f"spectral_start={co_c.spectral_range[0]} spectral_stop={co_c.spectral_range[1]} spectral_units={co_c.spectral_units} overwrite={overwrite}"
         )
         if output_path.exists() and not overwrite:
             raise FileExistsError(f"Output file already exists: {output_path}")

@@ -4,6 +4,7 @@ from cutouts_service.cutouts.cutout import (  # noqa : I001
     ImageLikeHDU,
     IOConfig,
     Options,
+    SPECTRAL_UNITS,
 )
 from cutouts_service.cutouts.astropy_cutout import AstropyCutout
 

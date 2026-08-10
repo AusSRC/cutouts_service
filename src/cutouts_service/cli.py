@@ -77,7 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--spectral-units",
         choices=SPECTRAL_UNITS,
         default="channels",
-        help=f"The unit selection for specifying the spectral bounds, can be one of {SPECTRAL_UNITS}, default is `channels`.",
+        help=f"The unit selection for specifying the spectral bounds, can be one of {', '.join(key for key in SPECTRAL_UNITS)}; default is 'channels'.",
     )
     parser.add_argument(
         "--spectral-min",

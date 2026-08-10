@@ -307,7 +307,10 @@ class Cutout(ABC):
                 spec_req = None
             else:
                 if co_c.spectral_units == "channels":
-                    spec_req = [x * spec_units for x in wcs.spectral.pixel_to_world_values(co_c.spectral_range)]
+                    spec_req = [
+                        x * spec_units
+                        for x in wcs.spectral.pixel_to_world_values(co_c.spectral_range)
+                    ]
                 else:
                     req_units = self._parse_frequency_units(co_c.spectral_units)
                     spec_req = [x * req_units for x in co_c.spectral_range]

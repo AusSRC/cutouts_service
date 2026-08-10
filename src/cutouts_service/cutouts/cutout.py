@@ -301,11 +301,17 @@ class Cutout(ABC):
         if wcs.has_spectral:
             nchans = wcs.spectral.array_shape[0]
             spec_lims = wcs.spectral.pixel_to_world_values([0, nchans])
+            spec_units = wcs.spectral.world_axis_units[0]
+            spec_units = self._parse_frequency_units(spec_units)
             if co_c.spectral_range[0] is None or co_c.spectral_range[1] is None:
                 spec_req = None
             else:
-                spec_req = wcs.spectral.pixel_to_world_values(co_c.spectral_range)
-            spec_units = wcs.spectral.world_axis_units[0]
+                if co_c.spectral_units == "channels":
+                    spec_req = wcs.spectral.pixel_to_world_values(co_c.spectral_range)
+                else:
+                    req_units = self._parse_frequency_units(co_c.spectral_units)
+                    spec_req = [x * req_units for x in co_c.spectral_range]
+                    spec_req = [x.to(spec_units) for x in spec_req]
             logger.info(
                 f"\n\nThere are {nchans} channels\n"
                 f"\tThe frequency range is {spec_lims[0]:.3e} -> {spec_lims[1]:.3e} {spec_units}\n"

@@ -307,7 +307,7 @@ class Cutout(ABC):
                 spec_req = None
             else:
                 if co_c.spectral_units == "channels":
-                    spec_req = wcs.spectral.pixel_to_world_values(co_c.spectral_range)
+                    spec_req = [x * spec_units for x in wcs.spectral.pixel_to_world_values(co_c.spectral_range)]
                 else:
                     req_units = self._parse_frequency_units(co_c.spectral_units)
                     spec_req = [x * req_units for x in co_c.spectral_range]
@@ -317,10 +317,10 @@ class Cutout(ABC):
                 f"\tThe frequency range is {spec_lims[0]:.3e} -> {spec_lims[1]:.3e} {spec_units}\n"
             )
             if spec_req is None:
-                print("All channels have been requested")
+                logger.info("All channels have been requested")
             else:
-                print(
-                    f"\tYour request is from channel {co_c.spectral_range[0]} ({spec_req[0]:.3e} {spec_units}) to {co_c.spectral_range[1]} ({spec_req[1]:.3e} {spec_units})\n"
+                logger.info(
+                    f"\tYour request is from channel {co_c.spectral_range[0]} ({spec_req[0]:.3e}) to {co_c.spectral_range[1]} ({spec_req[1]:.3e})\n"
                 )
         if stokes_axis is not None:
             stokes_size = wcs.array_shape[::-1][stokes_axis]

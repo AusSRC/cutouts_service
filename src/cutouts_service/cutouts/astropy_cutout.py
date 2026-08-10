@@ -144,7 +144,12 @@ class AstropyCutout(Cutout):
             elif "DEC" in ctype:
                 slices.append(slice(indices["ymin"], indices["ymax"] + 1))
             elif "FREQ" in ctype:
-                slices.append(slice(indices["zmin"], (indices["zmax"] + 1 if indices["zmax"] is not None else None)))
+                slices.append(
+                    slice(
+                        indices["zmin"],
+                        (indices["zmax"] + 1 if indices["zmax"] is not None else None),
+                    )
+                )
             elif "STOKES" in ctype:
                 slices.append(slice(None))
 

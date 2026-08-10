@@ -3,14 +3,24 @@
 import argparse
 import logging
 
+from astropy import units as u
+
 from cutouts_service.cutouts import (
     AstropyCutout,
     CutoutConfig,
     IOConfig,
     ObjStoreCutout,
     Options,
-    SPECTRAL_UNITS,
 )
+
+SPECTRAL_UNITS = {
+    "channels": "channels",
+    "Hz": u.Hz,
+    "kHz": u.kHz,
+    "MHz": u.MHz,
+    "GHz": u.GHz,
+}
+
 
 logger = logging.getLogger(__name__)
 ARCMIN_PER_DEG = 60.0
@@ -67,7 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--spectral-units",
         choices=SPECTRAL_UNITS,
         default="channels",
-        help=f"The unit selection for specifying the spectral bounds, can be one of {SPECTRAL_UNITS}, default is `channels`."
+        help=f"The unit selection for specifying the spectral bounds, can be one of {SPECTRAL_UNITS}, default is `channels`.",
     )
     parser.add_argument(
         "--spectral-min",
@@ -129,10 +139,7 @@ def main(argv: list[str] | None = None):
         raise ValueError(
             "Both --spectral-min and --spectral-max must be provided together"
         )
-    if (
-        args.spectral_min is not None
-        and args.spectral_max < args.spectral_min
-    ):
+    if args.spectral_min is not None and args.spectral_max < args.spectral_min:
         raise ValueError(
             "--spectral-min must be greater than or equal to --spectral-max"
         )

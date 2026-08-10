@@ -23,7 +23,13 @@ _DTYPE_TO_BITPIX = {
 }
 
 ImageLikeHDU = fits.PrimaryHDU | fits.ImageHDU | fits.CompImageHDU
-SPECTRAL_UNITS = {"channels":"channels", "Hz":u.Hz, "kHz":u.kHz, "MHz":u.MHz, "GHz":u.GHz}
+SPECTRAL_UNITS = {
+    "channels": "channels",
+    "Hz": u.Hz,
+    "kHz": u.kHz,
+    "MHz": u.MHz,
+    "GHz": u.GHz,
+}
 
 
 @dataclass
@@ -66,7 +72,6 @@ class CutoutConfig:
     radius: float
     spectral_range: tuple[int, ...] | tuple[None, ...] = (None, None)
     spectral_units: str = "channels"
-
 
 
 @dataclass
@@ -218,10 +223,14 @@ class Cutout(ABC):
                 z_min, z_max = cutout_config.spectral_range
             else:
                 zunits = self._parse_frequency_units(cutout_config.spectral_units)
-                z0 = wcs.spectral.world_to_pixel(cutout_config.spectral_range[0] * zunits)
-                z1 = wcs.spectral.world_to_pixel(cutout_config.spectral_range[1] * zunits)
-                z_min = np.floor(min(z0,z1))
-                z_max = np.ceil(max(z0,z1))
+                z0 = wcs.spectral.world_to_pixel(
+                    cutout_config.spectral_range[0] * zunits
+                )
+                z1 = wcs.spectral.world_to_pixel(
+                    cutout_config.spectral_range[1] * zunits
+                )
+                z_min = np.floor(min(z0, z1))
+                z_max = np.ceil(max(z0, z1))
             pixel_indices.update({"zmin": int(z_min), "zmax": int(z_max)})
         else:
             pixel_indices.update({"zmin": None, "zmax": None})
@@ -254,7 +263,7 @@ class Cutout(ABC):
             True if the cutout fits, False if it doesn't.
         """
         shape = self.fits_shape[::-1]
-        chans = self.cutout_config.channel_range
+        chans = self.cutout_config.spectral_range
         cutout_indices = self.pixel_indices
         if cutout_indices["xmin"] < 0 or cutout_indices["xmax"] > (shape[0] - 1):
             return False

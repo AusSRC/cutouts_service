@@ -23,6 +23,13 @@ _DTYPE_TO_BITPIX = {
 }
 
 ImageLikeHDU = fits.PrimaryHDU | fits.ImageHDU | fits.CompImageHDU
+SPECTRAL_UNITS = {
+    "channels": "channels",
+    "Hz": u.Hz,
+    "kHz": u.kHz,
+    "MHz": u.MHz,
+    "GHz": u.GHz,
+}
 
 
 @dataclass
@@ -56,14 +63,15 @@ class CutoutConfig:
         The declination of the pointing in decimal degrees
     radius : float
         The radius/extent of the cutout centred at the pointing
-    channel_range : tuple[int, ...] | tuple[None, ...], Optional
+    spectral_range : tuple[int, ...] | tuple[None, ...], Optional
         The inclusive channel range to cutout on the spectral axis
     """
 
     ra: float
     dec: float
     radius: float
-    channel_range: tuple[int, ...] | tuple[None, ...] = (None, None)
+    spectral_range: tuple[int, ...] | tuple[None, ...] = (None, None)
+    spectral_units: str = "channels"
 
 
 @dataclass
@@ -172,7 +180,7 @@ class Cutout(ABC):
 
     def _compute_pixel_indices(
         self, header: fits.Header, cutout_config: CutoutConfig
-    ) -> tuple[dict[str, int], tuple[str]]:
+    ) -> tuple[dict[str, int] | dict[str, int | None], tuple[str]]:
         """Compute the array indices from the input celestial coordinates
 
         Parameters
@@ -209,6 +217,23 @@ class Cutout(ABC):
             "ymin": int(y_min),
             "ymax": int(y_max),
         }
+
+        if all(x is not None for x in cutout_config.spectral_range):
+            if cutout_config.spectral_units == "channels":
+                z_min, z_max = cutout_config.spectral_range
+            else:
+                zunits = self._parse_frequency_units(cutout_config.spectral_units)
+                z0 = wcs.spectral.world_to_pixel(
+                    cutout_config.spectral_range[0] * zunits
+                )
+                z1 = wcs.spectral.world_to_pixel(
+                    cutout_config.spectral_range[1] * zunits
+                )
+                z_min = np.floor(min(z0, z1))
+                z_max = np.ceil(max(z0, z1))
+            pixel_indices.update({"zmin": int(z_min), "zmax": int(z_max)})
+        else:
+            pixel_indices.update({"zmin": None, "zmax": None})
         return pixel_indices, axis_types
 
     @abstractmethod
@@ -238,7 +263,7 @@ class Cutout(ABC):
             True if the cutout fits, False if it doesn't.
         """
         shape = self.fits_shape[::-1]
-        chans = self.cutout_config.channel_range
+        chans = self.cutout_config.spectral_range
         cutout_indices = self.pixel_indices
         if cutout_indices["xmin"] < 0 or cutout_indices["xmax"] > (shape[0] - 1):
             return False
@@ -276,20 +301,29 @@ class Cutout(ABC):
         if wcs.has_spectral:
             nchans = wcs.spectral.array_shape[0]
             spec_lims = wcs.spectral.pixel_to_world_values([0, nchans])
-            if co_c.channel_range[0] is None or co_c.channel_range[1] is None:
+            spec_units = wcs.spectral.world_axis_units[0]
+            spec_units = self._parse_frequency_units(spec_units)
+            if co_c.spectral_range[0] is None or co_c.spectral_range[1] is None:
                 spec_req = None
             else:
-                spec_req = wcs.spectral.pixel_to_world_values(co_c.channel_range)
-            spec_units = wcs.spectral.world_axis_units[0]
+                if co_c.spectral_units == "channels":
+                    spec_req = [
+                        x * spec_units
+                        for x in wcs.spectral.pixel_to_world_values(co_c.spectral_range)
+                    ]
+                else:
+                    req_units = self._parse_frequency_units(co_c.spectral_units)
+                    spec_req = [x * req_units for x in co_c.spectral_range]
+                    spec_req = [x.to(spec_units) for x in spec_req]
             logger.info(
                 f"\n\nThere are {nchans} channels\n"
                 f"\tThe frequency range is {spec_lims[0]:.3e} -> {spec_lims[1]:.3e} {spec_units}\n"
             )
             if spec_req is None:
-                print("All channels have been requested")
+                logger.info("All channels have been requested")
             else:
-                print(
-                    f"\tYour request is from channel {co_c.channel_range[0]} ({spec_req[0]:.3e} {spec_units}) to {co_c.channel_range[1]} ({spec_req[1]:.3e} {spec_units})\n"
+                logger.info(
+                    f"\tYour request is from channel {co_c.spectral_range[0]} ({spec_req[0]:.3e}) to {co_c.spectral_range[1]} ({spec_req[1]:.3e})\n"
                 )
         if stokes_axis is not None:
             stokes_size = wcs.array_shape[::-1][stokes_axis]
@@ -386,3 +420,6 @@ class Cutout(ABC):
             logger.info("Setting CASAMBM to False, this is not present in the file")
             header.set("CASAMBM", False)
         return header
+
+    def _parse_frequency_units(self, units: str) -> u.UnitBase:
+        return SPECTRAL_UNITS[units]

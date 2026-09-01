@@ -86,7 +86,7 @@ class ObjStoreCutout(Cutout):
         ra = self.cutout_config.ra
         dec = self.cutout_config.dec
         radius = self.cutout_config.radius
-        channel_range = self.cutout_config.channel_range
+        spectral_range = self.cutout_config.spectral_range
         source_shape = self.fits_shape
 
         logger.info(
@@ -100,7 +100,7 @@ class ObjStoreCutout(Cutout):
             raise ValueError(f"Unsupported image dimensionality: {source_ndim}")
 
         indices = self.pixel_indices
-        indices.update({"zmin": channel_range[0], "zmax": channel_range[1]})
+        indices.update({"zmin": spectral_range[0], "zmax": spectral_range[1]})
 
         slices = []
         for ctype in self.axis_types:
@@ -111,12 +111,8 @@ class ObjStoreCutout(Cutout):
             elif "FREQ" in ctype:
                 slices.append(
                     slice(
-                        channel_range[0],
-                        (
-                            channel_range[1]
-                            if channel_range[1] is None
-                            else channel_range[1] + 1
-                        ),
+                        indices["zmin"],
+                        (indices["zmax"] + 1 if indices["zmax"] is not None else None),
                     )
                 )
             elif "STOKES" in ctype:
@@ -182,7 +178,7 @@ class ObjStoreCutout(Cutout):
         logger.info(
             f"Preparing cutout request source={source!s} output_path={output_path!s} "
             f"ra_deg={co_c.ra} dec_deg={co_c.dec} radius_deg={co_c.radius} s3_endpoint_url={s3_endpoint_url} "
-            f"spectral_start_pixel={co_c.channel_range[0]} spectral_stop_pixel={co_c.channel_range[1]} overwrite={overwrite}"
+            f"spectral_start={co_c.spectral_range[0]} spectral_stop={co_c.spectral_range[1]} spectral_units={co_c.spectral_units} overwrite={overwrite}"
         )
         if output_path.exists() and not overwrite:
             raise FileExistsError(f"Output file already exists: {output_path}")

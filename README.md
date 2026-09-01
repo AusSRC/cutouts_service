@@ -13,21 +13,28 @@ git submodule update --init --recursive
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
+pip install .
+```
+
+To include the development dependencies, such as `ruff` and `pytest`, run:
+
+```bash
 pip install ".[dev]"
 ```
 
 ## Testing
 
-Run `make test` to ensure that the package is appropriately installed. 
+If you installed the development dependencies you can run `make test` to ensure that the package is appropriately installed. 
 
 ## Running from the command-line
 
 The cutouts service is run from a single command:
 
 ```bash
-usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-start-channel SPECTRAL_START_CHANNEL]
-            [--spectral-stop-channel SPECTRAL_STOP_CHANNEL] [--dry-run] --output OUTPUT [--backend BACKEND]
-            ra dec radius file
+usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+                       [--spectral-units {channels,Hz,kHz,MHz,GHz}] [--spectral-min SPECTRAL_MIN] [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT
+                       [--backend {astropy,objstore}]
+                       ra dec radius file
 ```
 ### Where:
 | Positional Argument | Description |
@@ -42,11 +49,12 @@ usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DE
 | -h, --help | |          show this help message and exit |
 | --s3-endpoint-url | S3_ENDPOINT_URL | Optional S3-compatible endpoint URL for s3:// sources |
 | --log-level | DEBUG, INFO, WARNING, ERROR, or CRITICAL | Logging verbosity level (default: INFO) |
-| --spectral-start-channel | SPECTRAL_START_CHANNEL as an integer | Optional inclusive start channel for spectral-axis cutout, set spectral-start-channel and spectral-stop-channel to the same value for a single channel. Default is all channels. Note: the channel number is zero-indexed, i.e. enter 0 to retrieve the first channel. |
-| --spectral-stop-channel | SPECTRAL_STOP_CHANNEL as an integer | Optional inclusive stop channel for spectral-axis cutout, set spectral-start-channel and spectral-stop-channel to the same value for a single channel. Default is all channels. |
+| --spectral-units | One of 'channels', 'Hz', 'kHz', 'MHz', or 'GHz' | The unit selection for specifying the spectral bounds, can be one of channels, Hz, kHz, MHz, GHz; default is 'channels'. |
+| --spectral-min | SPECTRAL_MIN as a decimal number | The lower bound of the cutout request along the spectral axis, the units are specified by the `--spectral-unit` option. Default is to request all channels. Note: the channel number is zero-indexed, i.e. enter 0 to retrieve the first channel. |
+| --spectral-max | SPECTRAL_MAX as a decimal number | The lower bound of the cutout request along the spectral axis, the units are specified by the `--spectral-unit` option. Default is to request all channels. Note: the channel number is zero-indexed, i.e. enter 0 to retrieve the first channel. |
 | --dry-run, -n | |       perform a dry-run, where the selected fits cube will be queried for extent and size. |
 | --output | OUTPUT filename |      Output cutout FITS file |
-| --backend | BACKEND | The backend to use to perform the cutout. The two supported options are 'astropy' and 'objstore'. Default is 'astropy'. |
+| --backend | One of 'astropy' or 'objstore' | The backend to use to perform the cutout. The two supported options are 'astropy' and 'objstore'. Default is 'astropy'. |
 
 ### Example
 
@@ -54,6 +62,7 @@ usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DE
 cutouts-service 180.0 -30.0 0.1 "https://example.com/file.fits" --output cutout.fits
 cutouts-service 180.0 -30.0 0.1 "s3://example-bucket/file.fits" --output cutout.fits
 cutouts-service 180.0 -30.0 0.1 "s3://example-bucket/file.fits" --s3-endpoint-url "https://objects.example.org" --output cutout.fits
+cutouts-service 180.0 -30.0 0.1 "https://example.com/file.fits" --spectral-min 0.8 --spectral-max 1.0 --spectral-units GHz --output cutout.fits
 ```
 
 The CLI accepts `ra`, `dec`, `radius`, a remote FITS URL input (`http`, `https`, or `s3`), and a required `--output` path. It uses Astropy to extract a sky cutout from the source FITS file and writes the resulting FITS file to disk. Ensure that the urls are contained in quotes, especially if it contains special characters.

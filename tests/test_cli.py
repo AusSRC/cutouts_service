@@ -31,8 +31,8 @@ def test_build_parser_parses_cli_arguments() -> None:
     assert args.file == "https://example.com/catalog.fits"
     assert args.s3_endpoint_url == "https://objects.example.org"
     assert args.log_level == "DEBUG"
-    assert args.spectral_start_channel is None
-    assert args.spectral_stop_channel is None
+    assert args.spectral_min is None
+    assert args.spectral_max is None
     assert args.output == "cutout.fits"
 
 
@@ -45,17 +45,18 @@ def test_build_parser_parses_spectral_pixel_range_arguments() -> None:
             "-42.0",
             "0.5",
             "https://example.com/catalog.fits",
-            "--spectral-start-channel",
+            "--spectral-min",
             "10",
-            "--spectral-stop-channel",
+            "--spectral-max",
             "25",
             "--output",
             "cutout.fits",
         ]
     )
 
-    assert args.spectral_start_channel == 10
-    assert args.spectral_stop_channel == 25
+    assert args.spectral_min == 10
+    assert args.spectral_max == 25
+    assert args.spectral_units == "channels"
 
 
 def test_is_remote_source_for_url() -> None:
@@ -95,18 +96,67 @@ def test_main_requires_both_spectral_pixel_arguments(
     source_url = remote_fits_2d["url"]
     output_file = tmp_path / "cutout.fits"
 
-    with raises(
-        ValueError, match="Both --spectral-start-channel and --spectral-stop-channel"
-    ):
+    with raises(ValueError, match="Both --spectral-min and --spectral-max"):
         main(
             [
                 "180.0",
                 "-30.0",
                 "30.0",
                 source_url,
-                "--spectral-start-channel",
+                "--spectral-min",
                 "1",
                 "--output",
                 str(output_file),
             ]
         )
+
+
+def test_build_parser_parses_spectral_frequency_units_arguments() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "13.0",
+            "-42.0",
+            "0.5",
+            "https://example.com/catalog.fits",
+            "--spectral-min",
+            "10",
+            "--spectral-max",
+            "25",
+            "--spectral-units",
+            "GHz",
+            "--output",
+            "cutout.fits",
+        ]
+    )
+
+    assert args.spectral_min == 10
+    assert args.spectral_max == 25
+    assert args.spectral_units == "GHz"
+
+
+def test_unrecognised_spectral_units(tmp_path: Path, remote_fits_2d) -> None:
+    source_url = remote_fits_2d["url"]
+    output_file = tmp_path / "cutout.fits"
+
+    with raises(SystemExit) as e:
+        main(
+            [
+                "13.0",
+                "-42.0",
+                "0.5",
+                source_url,
+                "--spectral-min",
+                "10",
+                "--spectral-max",
+                "25",
+                "--spectral-units",
+                "Gz",
+                "--output",
+                str(output_file),
+            ]
+        )
+    error_out = next(tb for tb in e.traceback if tb.name == "error").locals["message"]
+    if "argument --spectral-units: invalid choice: 'Gz'" not in error_out:
+        raise AssertionError

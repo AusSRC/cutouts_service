@@ -143,9 +143,7 @@ def test_open_fits_source_sets_s3_endpoint_url_in_fsspec_kwargs(
 def test_open_fits_source_rejects_local_files() -> None:
     with (
         pytest.raises(ValueError, match="remote FITS URL"),
-        AstropyCutout(
-            IOConfig("./catalog.fits", "test"), CutoutConfig(1, 1, 1)
-        ),
+        AstropyCutout(IOConfig("./catalog.fits", "test"), CutoutConfig(1, 1, 1)),
     ):
         pass
 
@@ -206,8 +204,49 @@ def test_get_cube_details(remote_fits_3d, caplog) -> None:
         cutout.source_header = remote_fits_3d["header"]
         cutout._get_cube_details()
     captured = caplog.records
-    for record in captured[5:8]:
-        assert len(record.msg) > 0
+    func_messages = []
+    for record in captured:
+        if record.funcName == "_get_cube_details":
+            func_messages.append(record)
+    assert len(func_messages) > 0
+    assert (
+        func_messages[0].message
+        == "\n\nThe extent of the cube is:\n\tRA: 174.259 -> 185.741\n\tDec: -34.6044 -> -25.1691\n\tYour request is to create a cutout from 179 -31 to 181 -29 (corner to corner)\n"
+    )
+    assert (
+        func_messages[1].message
+        == "\n\nThere are 2 channels\n\tThe frequency range is 0.000e+00 -> 2.000e+00 Hz\n"
+    )
+    assert (
+        func_messages[2].message
+        == "\tYour request is from channel 1 (1.000e+00 Hz) to 1 (1.000e+00 Hz)\n"
+    )
+    assert (
+        func_messages[3].message
+        == "\n\nThe STOKES axis has 10 elements, we will collect all elements\n"
+    )
+
+
+def test_get_cube_details_spectral_units(remote_fits_3d, caplog) -> None:
+    with caplog.at_level(logging.INFO):
+        source_url = remote_fits_3d["url"]
+        cutout = AstropyCutout(
+            io_config=IOConfig(source_url, "test"),
+            cutout_config=CutoutConfig(
+                180, -30, 1, spectral_range=(0, 1), spectral_units="Hz"
+            ),
+        )
+        cutout.source_header = remote_fits_3d["header"]
+        cutout._get_cube_details()
+        captured = caplog.records
+        func_messages = []
+        for record in captured:
+            if record.funcName == "_get_cube_details":
+                func_messages.append(record)
+        assert (
+            func_messages[2].message
+            == "\tYour request is from channel 0 (0.000e+00 Hz) to 1 (1.000e+00 Hz)\n"
+        )
 
 
 def test_fail_on_out_of_bounds(tmp_path: Path, remote_fits_3d):

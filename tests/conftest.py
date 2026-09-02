@@ -150,3 +150,19 @@ def remote_fits_3d_multitable(
         "url": f"{base_url}/{source_file.name}",
         "header": source_header_3d,
     }
+
+@pytest.fixture
+def remote_fits_3d_galactic(http_file_server, source_header_3d: fits.Header):
+    root = http_file_server["root"]
+    base_url = http_file_server["base_url"]
+    source_header_3d.set("CTYPE1", "GLON")
+    source_header_3d.set("CTYPE2", "GLAT")
+    source_header_3d.set("CRVAL1", 289)
+    source_header_3d.set("CRVAL2", 31)
+    source_file = root / "source_cube_gal.fits"
+    source_data = np.arange(10 * 2 * 20 * 20, dtype=np.float32).reshape((10, 2, 20, 20))
+    fits.PrimaryHDU(data=source_data, header=source_header_3d).writeto(source_file)
+    return {
+        "url": f"{base_url}/{source_file.name}",
+        "header": source_header_3d,
+    }

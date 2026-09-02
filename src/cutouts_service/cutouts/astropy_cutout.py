@@ -120,14 +120,14 @@ class AstropyCutout(Cutout):
         ValueError
             If The selected FITS HDU does not contain image data or the dimensionality is unsupported
         """
-        ra = self.cutout_config.ra
-        dec = self.cutout_config.dec
+        longitude = self.cutout_config.longitude
+        latitude = self.cutout_config.latitude
         radius = self.cutout_config.radius
         header = self.source_header
         source_shape = self.fits_shape
 
         logger.info(
-            f"Starting spatial cutout calculation ra_deg={ra} dec_deg={dec} radius_deg={radius}"
+            f"Starting spatial cutout calculation ra_deg={longitude} dec_deg={latitude} radius_deg={radius}"
         )
 
         if not source_shape:
@@ -138,10 +138,11 @@ class AstropyCutout(Cutout):
 
         indices = self.pixel_indices
         slices = []
+        coord_ctypes = (("RA","GLON"),("DEC","GLAT"))
         for ctype in self.axis_types:
-            if "RA" in ctype:
+            if any(long in ctype for long in coord_ctypes[0]):
                 slices.append(slice(indices["xmin"], indices["xmax"] + 1))
-            elif "DEC" in ctype:
+            elif any(lat in ctype for lat in coord_ctypes[1]):
                 slices.append(slice(indices["ymin"], indices["ymax"] + 1))
             elif "FREQ" in ctype:
                 slices.append(
@@ -189,7 +190,7 @@ class AstropyCutout(Cutout):
         output_path = Path(io_c.output_path)
         logger.info(
             f"Preparing cutout request source={source!s} output_path={output_path!s} "
-            f"ra_deg={co_c.ra} dec_deg={co_c.dec} radius_deg={co_c.radius} s3_endpoint_url={s3_endpoint_url} "
+            f"long_deg={co_c.longitude} lat_deg={co_c.latitude} radius_deg={co_c.radius} s3_endpoint_url={s3_endpoint_url} "
             f"spectral_start={co_c.spectral_range[0]} spectral_stop={co_c.spectral_range[1]} spectral_units={co_c.spectral_units} overwrite={overwrite}"
         )
         if output_path.exists() and not overwrite:
@@ -197,7 +198,6 @@ class AstropyCutout(Cutout):
 
         logger.info("Opening FITS source")
 
-        self._compute_pixel_indices(self.source_header, self.cutout_config)
         if not self.check_cutout_fit():
             self._get_cube_details()
             raise ValueError(

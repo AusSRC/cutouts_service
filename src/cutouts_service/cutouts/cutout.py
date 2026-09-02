@@ -57,21 +57,27 @@ class CutoutConfig:
 
     Parameters
     ----------
-    ra : float
-        The Right ascension of the pointing in decimal degrees
-    dec : float
-        The declination of the pointing in decimal degrees
+    longitude : float
+        The Right ascension or galactic longitude of the pointing in decimal degrees
+    latitude : float
+        The declination or galactic latitude of the pointing in decimal degrees
     radius : float
         The radius/extent of the cutout centred at the pointing
     spectral_range : tuple[int, ...] | tuple[None, ...], Optional
         The inclusive channel range to cutout on the spectral axis
+    spectral_units : str = "channels"
+        The spectral units to use for channel selection
+    coordinate_system : tuple[str,str] = ("RA","DEC")
+        The coordinate system to use, either ("RA","DEC") or ("GLON","GLAT")
+
     """
 
-    ra: float
-    dec: float
+    longitude: float
+    latitude: float
     radius: float
     spectral_range: tuple[int, ...] | tuple[None, ...] = (None, None)
     spectral_units: str = "channels"
+    coordinate_system: tuple[str,str] = ("RA", "DEC")
 
 
 @dataclass
@@ -195,8 +201,8 @@ class Cutout(ABC):
         tuple[dict[str, int], tuple[str]]
             The pixel indices of the cutout relative to the fits file and the types of each axis
         """
-
-        position = SkyCoord(ra=cutout_config.ra * u.deg, dec=cutout_config.dec * u.deg)
+        frame = "icrs" if cutout_config.coordinate_system[0] == "RA" else "galactic"
+        position = SkyCoord(cutout_config.longitude * u.deg, cutout_config.latitude * u.deg,frame=frame)
         size = 2 * cutout_config.radius * u.deg
         wcs = WCS(fits.Header(header))
         ra_dec_min = position.spherical_offsets_by(-size / 2, -size / 2)
@@ -278,26 +284,37 @@ class Cutout(ABC):
         """Query and print key Cube details from header"""
 
         co_c = self.cutout_config
-        ra = co_c.ra * u.deg
-        dec = co_c.dec * u.deg
+        longitude = co_c.longitude * u.deg
+        latitude = co_c.latitude * u.deg
         radius = co_c.radius * u.deg
+        frame = "icrs" if co_c.coordinate_system[0] == "RA" else "galactic"
         wcs = WCS(self.source_header)
 
+        cubeframe = "icrs" if wcs.axis_type_names[0] == "RA" else "galactic" if wcs.axis_type_names[0] == "GLON" else None
+        if cubeframe is None:
+            logger.warning("The target cube has an unrecognised coordinate system %s %s. The cutout will proceed as expected, but cannot provide a conversion in this dialog.", wcs.axis_type_names[0], wcs.axis_type_names[1])
         corners = wcs.celestial.calc_footprint()
         axes = wcs.get_axis_types()
         stokes_axis = None
         for i, a in enumerate(axes):
             if a["coordinate_type"] == "stokes":
                 stokes_axis = i
-        ra_dec_min = SkyCoord(ra=ra - radius, dec=dec - radius)
-        ra_dec_max = SkyCoord(ra=ra + radius, dec=dec + radius)
+        
+        ra_dec_min = SkyCoord(longitude - radius, latitude - radius, frame=frame)
+        ra_dec_max = SkyCoord(longitude + radius, latitude + radius, frame=frame)
 
         logger.info(
             "\n\nThe extent of the cube is:\n"
-            f"\tRA: {corners[:, 0].min():.3f} -> {corners[:, 0].max():.3f}\n"
-            f"\tDec: {corners[:, 1].min():.4f} -> {corners[:, 1].max():.4f}\n"
-            f"\tYour request is to create a cutout from {ra_dec_min.to_string()} to {ra_dec_max.to_string()} (corner to corner)\n"
+            f"\t{wcs.axis_type_names[0]}: {corners[:, 0].min():.3f} -> {corners[:, 0].max():.3f}\n"
+            f"\t{wcs.axis_type_names[1]}: {corners[:, 1].min():.4f} -> {corners[:, 1].max():.4f}\n"
+            f"\tYour request is to create a cutout from {ra_dec_min.spherical.lon}, {ra_dec_min.spherical.lat} to {ra_dec_max.spherical.lon}, {ra_dec_max.spherical.lat} (corner to corner, frame={frame})\n"
         )
+        if cubeframe is not None and frame != cubeframe:
+            cf_ra_dec_min = ra_dec_min.transform_to(cubeframe)
+            cf_ra_dec_max = ra_dec_max.transform_to(cubeframe)
+            logger.info(
+                f"\n\tThis is {cf_ra_dec_min.spherical.lon}, {cf_ra_dec_min.spherical.lat} to {cf_ra_dec_max.spherical.lon}, {cf_ra_dec_max.spherical.lat} ({cubeframe})\n"
+            )
         if wcs.has_spectral:
             nchans = wcs.spectral.array_shape[0]
             spec_lims = wcs.spectral.pixel_to_world_values([0, nchans])
@@ -317,13 +334,13 @@ class Cutout(ABC):
                     spec_req = [x.to(spec_units) for x in spec_req]
             logger.info(
                 f"\n\nThere are {nchans} channels\n"
-                f"\tThe frequency range is {spec_lims[0]:.3e} -> {spec_lims[1]:.3e} {spec_units}\n"
+                f"\tThe frequency range is {spec_lims[0]:.5e} -> {spec_lims[1]:.5e} {spec_units}\n"
             )
             if spec_req is None:
                 logger.info("All channels have been requested")
             else:
                 logger.info(
-                    f"\tYour request is from channel {co_c.spectral_range[0]} ({spec_req[0]:.3e}) to {co_c.spectral_range[1]} ({spec_req[1]:.3e})\n"
+                    f"\tYour request is from channel {co_c.spectral_range[0]} ({spec_req[0]:.5e}) to {co_c.spectral_range[1]} ({spec_req[1]:.5e})\n"
                 )
         if stokes_axis is not None:
             stokes_size = wcs.array_shape[::-1][stokes_axis]

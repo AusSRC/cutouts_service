@@ -25,8 +25,8 @@ def test_build_parser_parses_cli_arguments() -> None:
         ]
     )
 
-    assert args.ra == 13.0
-    assert args.dec == -42.0
+    assert args.longitude == 13.0
+    assert args.latitude == -42.0
     assert args.radius == 0.5
     assert args.file == "https://example.com/catalog.fits"
     assert args.s3_endpoint_url == "https://objects.example.org"

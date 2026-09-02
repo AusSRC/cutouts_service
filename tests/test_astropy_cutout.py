@@ -211,15 +211,15 @@ def test_get_cube_details(remote_fits_3d, caplog) -> None:
     assert len(func_messages) > 0
     assert (
         func_messages[0].message
-        == "\n\nThe extent of the cube is:\n\tRA: 174.259 -> 185.741\n\tDec: -34.6044 -> -25.1691\n\tYour request is to create a cutout from 179 -31 to 181 -29 (corner to corner)\n"
+        == "\n\nThe extent of the cube is:\n\tRA: 174.259 -> 185.741\n\tDEC: -34.6044 -> -25.1691\n\tYour request is to create a cutout from 179.0 deg, -31.0 deg to 181.0 deg, -29.0 deg (corner to corner, frame=icrs)\n"
     )
     assert (
         func_messages[1].message
-        == "\n\nThere are 2 channels\n\tThe frequency range is 0.000e+00 -> 2.000e+00 Hz\n"
+        == "\n\nThere are 2 channels\n\tThe frequency range is 0.00000e+00 -> 2.00000e+00 Hz\n"
     )
     assert (
         func_messages[2].message
-        == "\tYour request is from channel 1 (1.000e+00 Hz) to 1 (1.000e+00 Hz)\n"
+        == "\tYour request is from channel 1 (1.00000e+00 Hz) to 1 (1.00000e+00 Hz)\n"
     )
     assert (
         func_messages[3].message
@@ -245,7 +245,7 @@ def test_get_cube_details_spectral_units(remote_fits_3d, caplog) -> None:
                 func_messages.append(record)
         assert (
             func_messages[2].message
-            == "\tYour request is from channel 0 (0.000e+00 Hz) to 1 (1.000e+00 Hz)\n"
+            == "\tYour request is from channel 0 (0.00000e+00 Hz) to 1 (1.00000e+00 Hz)\n"
         )
 
 
@@ -273,3 +273,57 @@ def test_write_multitable_hdu(tmp_path: Path, remote_fits_3d_multitable):
         assert type(f[0]) is fits.hdu.image.PrimaryHDU
         assert type(f[1]) is fits.hdu.table.BinTableHDU
         assert f[0].header.get("CASAMBM", False)
+
+
+def test_cutout_gal_cube(tmp_path: Path, remote_fits_3d_galactic):
+    output_file = tmp_path / "cutout_cube_gal.fits"
+    source_url = remote_fits_3d_galactic["url"]
+
+    io_config = IOConfig(source_url, output_file)
+    cutout_config = CutoutConfig(180.0, -30.0, 1.0)
+    AstropyCutout(io_config, cutout_config).create_cutout()
+
+    with fits.open(output_file) as hdul:
+        data = hdul[0].data
+        header = hdul[0].header
+
+    assert data.shape == (10, 2, 7, 5)
+    assert header["NAXIS1"] == 5
+    assert header["NAXIS2"] == 7
+    assert header["NAXIS3"] == 2
+
+
+def test_cutout_gal_input(tmp_path: Path, remote_fits_3d):
+    output_file = tmp_path / "cutout_cube_gal.fits"
+    source_url = remote_fits_3d["url"]
+
+    io_config = IOConfig(source_url, output_file)
+    cutout_config = CutoutConfig(289.0, 31.0, 1.0, coordinate_system=("GLON", "GLAT"))
+    AstropyCutout(io_config, cutout_config).create_cutout()
+
+    with fits.open(output_file) as hdul:
+        data = hdul[0].data
+        header = hdul[0].header
+
+    assert data.shape == (10, 2, 5, 7)
+    assert header["NAXIS1"] == 7
+    assert header["NAXIS2"] == 5
+    assert header["NAXIS3"] == 2
+
+
+def test_cutout_gal_cube_input(tmp_path: Path, remote_fits_3d_galactic):
+    output_file = tmp_path / "cutout_cube_gal.fits"
+    source_url = remote_fits_3d_galactic["url"]
+
+    io_config = IOConfig(source_url, output_file)
+    cutout_config = CutoutConfig(289.0, 31.0, 1.0, coordinate_system=("GLON", "GLAT"))
+    AstropyCutout(io_config, cutout_config).create_cutout()
+
+    with fits.open(output_file) as hdul:
+        data = hdul[0].data
+        header = hdul[0].header
+
+    assert data.shape == (10, 2, 6, 6)
+    assert header["NAXIS1"] == 6
+    assert header["NAXIS2"] == 6
+    assert header["NAXIS3"] == 2

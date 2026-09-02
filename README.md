@@ -31,16 +31,15 @@ If you installed the development dependencies you can run `make test` to ensure 
 The cutouts service is run from a single command:
 
 ```bash
-usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-                       [--spectral-units {channels,Hz,kHz,MHz,GHz}] [--spectral-min SPECTRAL_MIN] [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT
-                       [--backend {astropy,objstore}]
-                       ra dec radius file
+usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-units {channels,Hz,kHz,MHz,GHz}]
+                       [--spectral-min SPECTRAL_MIN] [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT [--backend {astropy,objstore}] [--coordinate-system {Equatorial,Galactic}]
+                       longitude latitude radius file
 ```
 ### Where:
 | Positional Argument | Description |
 |:----------:|:-------------|
-| ra | Right ascension in decimal degrees |
-| dec | Declination in decimal degrees |
+| longitude | The longitude of the centre of the cutout, if the angular units are equatorial, this would be the Right Ascension |
+| latitude | The latitude of the centre ofthe cutout, if the angular units are equatorial, this would be the Declination |
 | radius | Cutout radius in arcminutes |
 |file | Input file path or URL |
 
@@ -55,6 +54,7 @@ usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DE
 | --dry-run, -n | |       perform a dry-run, where the selected fits cube will be queried for extent and size. |
 | --output | OUTPUT filename |      Output cutout FITS file |
 | --backend | One of 'astropy' or 'objstore' | The backend to use to perform the cutout. The two supported options are 'astropy' and 'objstore'. Default is 'astropy'. |
+|--coordinate-system |  One of 'equatorial' or 'galactic' | The coordinate system to use for the cutout input |
 
 ### Example
 
@@ -63,9 +63,10 @@ cutouts-service 180.0 -30.0 0.1 "https://example.com/file.fits" --output cutout.
 cutouts-service 180.0 -30.0 0.1 "s3://example-bucket/file.fits" --output cutout.fits
 cutouts-service 180.0 -30.0 0.1 "s3://example-bucket/file.fits" --s3-endpoint-url "https://objects.example.org" --output cutout.fits
 cutouts-service 180.0 -30.0 0.1 "https://example.com/file.fits" --spectral-min 0.8 --spectral-max 1.0 --spectral-units GHz --output cutout.fits
+cutouts-service 289.0 31.0 0.1 "https://example.com/file.fits" --spectral-min 0.8 --spectral-max 1.0 --spectral-units GHz --coordinate-system galactic --output cutout.fits
 ```
 
-The CLI accepts `ra`, `dec`, `radius`, a remote FITS URL input (`http`, `https`, or `s3`), and a required `--output` path. It uses Astropy to extract a sky cutout from the source FITS file and writes the resulting FITS file to disk. Ensure that the urls are contained in quotes, especially if it contains special characters.
+The CLI accepts `longitude`, `latitude`, `radius`, a remote FITS URL input (`http`, `https`, or `s3`), and a required `--output` path. It uses Astropy to extract a sky cutout from the source FITS file and writes the resulting FITS file to disk. Ensure that the urls are contained in quotes, especially if it contains special characters. The specified `coordinate-system` is the frame of the input coordinates and has no bearing on the coordinate system of the targeted cube. The output cube will be written in the same coordinate system as the input cube.
 
 For S3-compatible object stores, pass `--s3-endpoint-url` to route `s3://` requests to a custom endpoint.
 

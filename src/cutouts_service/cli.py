@@ -27,7 +27,7 @@ ARCMIN_PER_DEG = 60.0
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
 BACKENDS = {"astropy": AstropyCutout, "objstore": ObjStoreCutout}
-COORDINATE_SYSTEMS = {"equatorial":("RA","DEC"), "galactic":("GLON","GLAT")}
+COORDINATE_SYSTEMS = {"equatorial": ("RA", "DEC"), "galactic": ("GLON", "GLAT")}
 
 
 def configure_logging(level_name: str):
@@ -59,8 +59,16 @@ def build_parser() -> argparse.ArgumentParser:
     """
 
     parser = argparse.ArgumentParser(description="Prepare a cutout request")
-    parser.add_argument("longitude", type=float, help="The longitude of the centre of the cutout, if the angular units are equatorial, this would be the Right Ascension")
-    parser.add_argument("latitude", type=float, help="The latitude of the centre ofthe cutout, if the angular units are equatorial, this would be the Declination")
+    parser.add_argument(
+        "longitude",
+        type=float,
+        help="The longitude of the centre of the cutout, if the angular units are equatorial, this would be the Right Ascension",
+    )
+    parser.add_argument(
+        "latitude",
+        type=float,
+        help="The latitude of the centre ofthe cutout, if the angular units are equatorial, this would be the Declination",
+    )
     parser.add_argument("radius", type=float, help="Cutout radius in arcminutes")
     parser.add_argument("file", help="Input file path or URL")
     parser.add_argument(
@@ -171,7 +179,7 @@ def main(argv: list[str] | None = None):
         radius_deg,
         (args.spectral_min, args.spectral_max),
         args.spectral_units,
-        COORDINATE_SYSTEMS[args.coordinate_system]
+        COORDINATE_SYSTEMS[args.coordinate_system],
     )
     options = Options(args.dry_run)
     try:

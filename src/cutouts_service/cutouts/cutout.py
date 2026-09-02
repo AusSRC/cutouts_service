@@ -77,7 +77,7 @@ class CutoutConfig:
     radius: float
     spectral_range: tuple[int, ...] | tuple[None, ...] = (None, None)
     spectral_units: str = "channels"
-    coordinate_system: tuple[str,str] = ("RA", "DEC")
+    coordinate_system: tuple[str, str] = ("RA", "DEC")
 
 
 @dataclass
@@ -202,7 +202,9 @@ class Cutout(ABC):
             The pixel indices of the cutout relative to the fits file and the types of each axis
         """
         frame = "icrs" if cutout_config.coordinate_system[0] == "RA" else "galactic"
-        position = SkyCoord(cutout_config.longitude * u.deg, cutout_config.latitude * u.deg,frame=frame)
+        position = SkyCoord(
+            cutout_config.longitude * u.deg, cutout_config.latitude * u.deg, frame=frame
+        )
         size = 2 * cutout_config.radius * u.deg
         wcs = WCS(fits.Header(header))
         ra_dec_min = position.spherical_offsets_by(-size / 2, -size / 2)
@@ -290,16 +292,26 @@ class Cutout(ABC):
         frame = "icrs" if co_c.coordinate_system[0] == "RA" else "galactic"
         wcs = WCS(self.source_header)
 
-        cubeframe = "icrs" if wcs.axis_type_names[0] == "RA" else "galactic" if wcs.axis_type_names[0] == "GLON" else None
+        cubeframe = (
+            "icrs"
+            if wcs.axis_type_names[0] == "RA"
+            else "galactic"
+            if wcs.axis_type_names[0] == "GLON"
+            else None
+        )
         if cubeframe is None:
-            logger.warning("The target cube has an unrecognised coordinate system %s %s. The cutout will proceed as expected, but cannot provide a conversion in this dialog.", wcs.axis_type_names[0], wcs.axis_type_names[1])
+            logger.warning(
+                "The target cube has an unrecognised coordinate system %s %s. The cutout will proceed as expected, but cannot provide a conversion in this dialog.",
+                wcs.axis_type_names[0],
+                wcs.axis_type_names[1],
+            )
         corners = wcs.celestial.calc_footprint()
         axes = wcs.get_axis_types()
         stokes_axis = None
         for i, a in enumerate(axes):
             if a["coordinate_type"] == "stokes":
                 stokes_axis = i
-        
+
         ra_dec_min = SkyCoord(longitude - radius, latitude - radius, frame=frame)
         ra_dec_max = SkyCoord(longitude + radius, latitude + radius, frame=frame)
 

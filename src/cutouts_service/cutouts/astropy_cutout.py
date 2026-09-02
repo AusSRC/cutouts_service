@@ -138,7 +138,7 @@ class AstropyCutout(Cutout):
 
         indices = self.pixel_indices
         slices = []
-        coord_ctypes = (("RA","GLON"),("DEC","GLAT"))
+        coord_ctypes = (("RA", "GLON"), ("DEC", "GLAT"))
         for ctype in self.axis_types:
             if any(long in ctype for long in coord_ctypes[0]):
                 slices.append(slice(indices["xmin"], indices["xmax"] + 1))

@@ -151,6 +151,7 @@ def remote_fits_3d_multitable(
         "header": source_header_3d,
     }
 
+
 @pytest.fixture
 def remote_fits_3d_galactic(http_file_server, source_header_3d: fits.Header):
     root = http_file_server["root"]

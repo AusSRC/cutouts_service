@@ -215,11 +215,11 @@ def test_get_cube_details(remote_fits_3d, caplog) -> None:
     )
     assert (
         func_messages[1].message
-        == "\n\nThere are 2 channels\n\tThe frequency range is 0.000e+00 -> 2.000e+00 Hz\n"
+        == "\n\nThere are 2 channels\n\tThe frequency range is 0.00000e+00 -> 2.00000e+00 Hz\n"
     )
     assert (
         func_messages[2].message
-        == "\tYour request is from channel 1 (1.000e+00 Hz) to 1 (1.000e+00 Hz)\n"
+        == "\tYour request is from channel 1 (1.00000e+00 Hz) to 1 (1.00000e+00 Hz)\n"
     )
     assert (
         func_messages[3].message
@@ -245,7 +245,7 @@ def test_get_cube_details_spectral_units(remote_fits_3d, caplog) -> None:
                 func_messages.append(record)
         assert (
             func_messages[2].message
-            == "\tYour request is from channel 0 (0.000e+00 Hz) to 1 (1.000e+00 Hz)\n"
+            == "\tYour request is from channel 0 (0.00000e+00 Hz) to 1 (1.00000e+00 Hz)\n"
         )
 
 
@@ -292,12 +292,13 @@ def test_cutout_gal_cube(tmp_path: Path, remote_fits_3d_galactic):
     assert header["NAXIS2"] == 7
     assert header["NAXIS3"] == 2
 
+
 def test_cutout_gal_input(tmp_path: Path, remote_fits_3d):
     output_file = tmp_path / "cutout_cube_gal.fits"
     source_url = remote_fits_3d["url"]
 
     io_config = IOConfig(source_url, output_file)
-    cutout_config = CutoutConfig(289.0, 31.0, 1.0, coordinate_system=("GLON","GLAT"))
+    cutout_config = CutoutConfig(289.0, 31.0, 1.0, coordinate_system=("GLON", "GLAT"))
     AstropyCutout(io_config, cutout_config).create_cutout()
 
     with fits.open(output_file) as hdul:
@@ -309,12 +310,13 @@ def test_cutout_gal_input(tmp_path: Path, remote_fits_3d):
     assert header["NAXIS2"] == 5
     assert header["NAXIS3"] == 2
 
+
 def test_cutout_gal_cube_input(tmp_path: Path, remote_fits_3d_galactic):
     output_file = tmp_path / "cutout_cube_gal.fits"
     source_url = remote_fits_3d_galactic["url"]
 
     io_config = IOConfig(source_url, output_file)
-    cutout_config = CutoutConfig(289.0, 31.0, 1.0, coordinate_system=("GLON","GLAT"))
+    cutout_config = CutoutConfig(289.0, 31.0, 1.0, coordinate_system=("GLON", "GLAT"))
     AstropyCutout(io_config, cutout_config).create_cutout()
 
     with fits.open(output_file) as hdul:

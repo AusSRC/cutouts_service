@@ -103,7 +103,7 @@ class ObjStoreCutout(Cutout):
         indices.update({"zmin": spectral_range[0], "zmax": spectral_range[1]})
 
         slices = []
-        coord_ctypes = (("RA","GLON"),("DEC","DLAT"))
+        coord_ctypes = (("RA", "GLON"), ("DEC", "DLAT"))
         for ctype in self.axis_types:
             if any(long in ctype for long in coord_ctypes[0]):
                 slices.append(slice(indices["xmin"], indices["xmax"] + 1))

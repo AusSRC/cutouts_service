@@ -100,10 +100,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(description="Prepare a cutout request")
     parser.add_argument(
-        "ra", type=parse_longitude, help="Right ascension in decimal degrees"
+        "ra", type=parse_longitude, help="Right ascension of the centre of the cutout"
     )
     parser.add_argument(
-        "dec", type=parse_latitude, help="Declination in decimal degrees"
+        "dec", type=parse_latitude, help="Declination of the centre of the cutout"
     )
     parser.add_argument("radius", type=float, help="Cutout radius in arcminutes")
     parser.add_argument("file", help="Input file path or URL")

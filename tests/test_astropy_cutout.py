@@ -3,6 +3,8 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from astropy import units as u
+from astropy.coordinates import Latitude, Longitude
 from astropy.io import fits
 
 from cutouts_service.cutouts import AstropyCutout, CutoutConfig, IOConfig
@@ -13,7 +15,7 @@ def test_write_cutout_creates_output_file(tmp_path: Path, remote_fits_2d):
     source_url = remote_fits_2d["url"]
     source_header = remote_fits_2d["header"]
     io_config = IOConfig(source_url, output_file)
-    cutout_config = CutoutConfig(180.0, -30.0, 1.0)
+    cutout_config = CutoutConfig(Longitude(180.0, u.deg), Latitude(-30.0, u.deg), 1.0)
     AstropyCutout(io_config, cutout_config).create_cutout()
 
     with fits.open(output_file) as hdul:
@@ -32,7 +34,7 @@ def test_write_cutout_preserves_cube_leading_axis(tmp_path: Path, remote_fits_3d
     source_url = remote_fits_3d["url"]
 
     io_config = IOConfig(source_url, output_file)
-    cutout_config = CutoutConfig(180.0, -30.0, 1.0)
+    cutout_config = CutoutConfig(Longitude(180.0, u.deg), Latitude(-30.0, u.deg), 1.0)
     AstropyCutout(io_config, cutout_config).create_cutout()
 
     with fits.open(output_file) as hdul:
@@ -50,7 +52,9 @@ def test_write_cutout_applies_spectral_axis_pixel_range(tmp_path: Path, remote_f
     source_url = remote_fits_3d["url"]
 
     io_config = IOConfig(source_url, output_file)
-    cutout_config = CutoutConfig(180.0, -30.0, 1.0, (1, 1))
+    cutout_config = CutoutConfig(
+        Longitude(180.0, u.deg), Latitude(-30.0, u.deg), 1.0, (1, 1)
+    )
     AstropyCutout(io_config, cutout_config).create_cutout()
 
     with fits.open(output_file) as hdul:
@@ -86,7 +90,7 @@ def test_find_image_hdu_uses_header_metadata_without_loading_data(remote_fits_3d
     image_hdu = FakeImageHDU()
     selected_hdu = AstropyCutout(
         io_config=IOConfig(remote_fits_3d["url"], "test"),
-        cutout_config=CutoutConfig(180, -30, 1),
+        cutout_config=CutoutConfig(Longitude(180.0, u.deg), Latitude(-30.0, u.deg), 1),
     )._find_image_hdu([FakeNonImageHDU(), image_hdu])
 
     assert selected_hdu is image_hdu
@@ -96,7 +100,7 @@ def test_open_fits_source_opens_remote_http_source(remote_fits_2d) -> None:
     ioconfig = IOConfig(remote_fits_2d["url"], "test")
     with AstropyCutout(
         io_config=ioconfig,
-        cutout_config=CutoutConfig(180, -30, 1),
+        cutout_config=CutoutConfig(Longitude(180.0, u.deg), Latitude(-30.0, u.deg), 1),
     )._open_fits_source(ioconfig) as hdul:
         assert len(hdul) == 1
         assert hdul[0].data is not None
@@ -121,7 +125,7 @@ def test_open_fits_source_sets_s3_endpoint_url_in_fsspec_kwargs(
 
     astro_cutout = AstropyCutout(
         IOConfig(remote_fits_3d["url"], "test"),
-        CutoutConfig(180, -30, 1),
+        CutoutConfig(Longitude(180.0, u.deg), Latitude(-30.0, u.deg), 1),
     )
     monkeypatch.setattr("cutouts_service.utils.fits.open", fake_open)
     with astro_cutout._open_fits_source(
@@ -155,7 +159,7 @@ def test_build_cutout_header_updates_spatial_axes(
     slices = (slice(2, 6), slice(3, 7))
     cutout = AstropyCutout(
         io_config=IOConfig(remote_fits_2d["url"], "test"),
-        cutout_config=CutoutConfig(180, -30, 1),
+        cutout_config=CutoutConfig(Longitude(180.0, u.deg), Latitude(-30.0, u.deg), 1),
     )
     cutout.source_header = source_header_2d
     cutout_header = cutout.build_cutout_header(slices, (4, 4), np.dtype("float32"))
@@ -179,7 +183,7 @@ def test_build_cutout_header_preserves_cube_depth(remote_fits_3d) -> None:
 
     cutout = AstropyCutout(
         io_config=IOConfig(remote_fits_3d["url"], "test"),
-        cutout_config=CutoutConfig(180, -30, 1),
+        cutout_config=CutoutConfig(Longitude(180.0, u.deg), Latitude(-30.0, u.deg), 1),
     )
     cutout.source_header = source_header
 
@@ -199,7 +203,9 @@ def test_get_cube_details(remote_fits_3d, caplog) -> None:
         source_url = remote_fits_3d["url"]
         cutout = AstropyCutout(
             io_config=IOConfig(source_url, "test"),
-            cutout_config=CutoutConfig(180, -30, 1, (1, 1)),
+            cutout_config=CutoutConfig(
+                Longitude(180.0, u.deg), Latitude(-30.0, u.deg), 1, (1, 1)
+            ),
         )
         cutout.source_header = remote_fits_3d["header"]
         cutout._get_cube_details()
@@ -233,7 +239,11 @@ def test_get_cube_details_spectral_units(remote_fits_3d, caplog) -> None:
         cutout = AstropyCutout(
             io_config=IOConfig(source_url, "test"),
             cutout_config=CutoutConfig(
-                180, -30, 1, spectral_range=(0, 1), spectral_units="Hz"
+                Longitude(180.0, u.deg),
+                Latitude(-30.0, u.deg),
+                1,
+                spectral_range=(0, 1),
+                spectral_units="Hz",
             ),
         )
         cutout.source_header = remote_fits_3d["header"]
@@ -254,7 +264,9 @@ def test_fail_on_out_of_bounds(tmp_path: Path, remote_fits_3d):
     source_url = remote_fits_3d["url"]
 
     io_config = IOConfig(source_url, output_file)
-    cutout_config = CutoutConfig(180.0, -30.0, 2.0, (-5, 100))
+    cutout_config = CutoutConfig(
+        Longitude(180.0, u.deg), Latitude(-30.0, u.deg), 2.0, (-5, 100)
+    )
     error_text = "The provided cutout configuration extends past the extents of the selected cube"
     with pytest.raises(ValueError, match=error_text):
         AstropyCutout(io_config, cutout_config).create_cutout()
@@ -264,7 +276,9 @@ def test_write_multitable_hdu(tmp_path: Path, remote_fits_3d_multitable):
     output_file = tmp_path / "cutout_cube.fits"
     source_url = remote_fits_3d_multitable["url"]
     io_config = IOConfig(source_url, output_file)
-    cutout_config = CutoutConfig(180, -30, 2, (2, 3))
+    cutout_config = CutoutConfig(
+        Longitude(180.0, u.deg), Latitude(-30.0, u.deg), 2, (2, 3)
+    )
     cutout = AstropyCutout(io_config, cutout_config)
     cutout.create_cutout()
 

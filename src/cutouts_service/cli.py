@@ -4,6 +4,7 @@ import argparse
 import logging
 
 from astropy import units as u
+from astropy.coordinates import Angle, Latitude, Longitude
 
 from cutouts_service.cutouts import (
     AstropyCutout,
@@ -57,9 +58,53 @@ def build_parser() -> argparse.ArgumentParser:
         The parser containing the command line arguments
     """
 
+    def parse_longitude(angle: str) -> Angle:
+        """parse longitude to an Angle object
+
+        Parameters
+        ----------
+        angle : str
+            The longitude to parse
+
+        Returns
+        -------
+        Angle
+            The parsed angle with attached units
+        """
+        # if sexagesimal, unit should be implicit
+        try:
+            return Longitude(angle)
+        except u.UnitsError:
+            # otherwise assume degrees
+            return Longitude(angle, u.deg)
+
+    def parse_latitude(angle: str) -> Angle:
+        """parse latitude to an Angle object
+
+        Parameters
+        ----------
+        angle : str
+            The latitude to parse
+
+        Returns
+        -------
+        Angle
+            The parsed angle with attached units
+        """
+        # if sexagesimal, unit should be implicit
+        try:
+            return Latitude(angle)
+        except u.UnitsError:
+            # otherwise assume degrees
+            return Latitude(angle, u.deg)
+
     parser = argparse.ArgumentParser(description="Prepare a cutout request")
-    parser.add_argument("ra", type=float, help="Right ascension in decimal degrees")
-    parser.add_argument("dec", type=float, help="Declination in decimal degrees")
+    parser.add_argument(
+        "ra", type=parse_longitude, help="Right ascension of the centre of the cutout"
+    )
+    parser.add_argument(
+        "dec", type=parse_latitude, help="Declination of the centre of the cutout"
+    )
     parser.add_argument("radius", type=float, help="Cutout radius in arcminutes")
     parser.add_argument("file", help="Input file path or URL")
     parser.add_argument(

@@ -25,8 +25,8 @@ def test_build_parser_parses_cli_arguments() -> None:
         ]
     )
 
-    assert args.ra == 13.0
-    assert args.dec == -42.0
+    assert args.ra.degree == 13.0
+    assert args.dec.degree == -42.0
     assert args.radius == 0.5
     assert args.file == "https://example.com/catalog.fits"
     assert args.s3_endpoint_url == "https://objects.example.org"
@@ -160,3 +160,38 @@ def test_unrecognised_spectral_units(tmp_path: Path, remote_fits_2d) -> None:
     error_out = next(tb for tb in e.traceback if tb.name == "error").locals["message"]
     if "argument --spectral-units: invalid choice: 'Gz'" not in error_out:
         raise AssertionError
+
+
+def test_sexagesimal_input() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "00h42m42s",
+            "40d51m55s",
+            "0.5",
+            "https://example.com/catalog.fits",
+            "--s3-endpoint-url",
+            "https://objects.example.org",
+            "--log-level",
+            "DEBUG",
+            "--output",
+            "cutout.fits",
+        ]
+    )
+
+    assert args.ra.degree == 10.674999999999999
+    assert args.dec.degree == 40.86527777777778
+
+
+def test_main_handles_sexagesimal_input(tmp_path: Path, remote_fits_2d) -> None:
+    source_url = remote_fits_2d["url"]
+    output_file = tmp_path / "cutout.fits"
+
+    main(["12h0m0s", "-30d00m00s", "30.0", source_url, "--output", str(output_file)])
+
+    with fits.open(output_file) as hdul:
+        data = hdul[0].data
+
+    assert output_file.exists()
+    assert data.shape == (4, 4)

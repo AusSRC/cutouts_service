@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import Angle, SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 
@@ -57,9 +57,9 @@ class CutoutConfig:
 
     Parameters
     ----------
-    ra : float
+    ra : astropy.coordinates.Angle
         The Right ascension of the pointing in decimal degrees
-    dec : float
+    dec : astropy.coordinates.Angle
         The declination of the pointing in decimal degrees
     radius : float
         The radius/extent of the cutout centred at the pointing
@@ -67,8 +67,8 @@ class CutoutConfig:
         The inclusive channel range to cutout on the spectral axis
     """
 
-    ra: float
-    dec: float
+    ra: Angle
+    dec: Angle
     radius: float
     spectral_range: tuple[int, ...] | tuple[None, ...] = (None, None)
     spectral_units: str = "channels"
@@ -196,7 +196,7 @@ class Cutout(ABC):
             The pixel indices of the cutout relative to the fits file and the types of each axis
         """
 
-        position = SkyCoord(ra=cutout_config.ra * u.deg, dec=cutout_config.dec * u.deg)
+        position = SkyCoord(ra=cutout_config.ra, dec=cutout_config.dec)
         size = 2 * cutout_config.radius * u.deg
         wcs = WCS(fits.Header(header))
         ra_dec_min = position.spherical_offsets_by(-size / 2, -size / 2)
@@ -278,8 +278,8 @@ class Cutout(ABC):
         """Query and print key Cube details from header"""
 
         co_c = self.cutout_config
-        ra = co_c.ra * u.deg
-        dec = co_c.dec * u.deg
+        ra = co_c.ra
+        dec = co_c.dec
         radius = co_c.radius * u.deg
         wcs = WCS(self.source_header)
 

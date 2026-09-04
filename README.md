@@ -39,8 +39,8 @@ usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DE
 ### Where:
 | Positional Argument | Description |
 |:----------:|:-------------|
-| ra | Right ascension in decimal degrees |
-| dec | Declination in decimal degrees |
+| ra | Right ascension of the centre of the cutout |
+| dec | Declination of the centre of the cutout |
 | radius | Cutout radius in arcminutes |
 |file | Input file path or URL |
 

@@ -63,9 +63,10 @@ cutouts-service 180.0 -30.0 0.1 "https://example.com/file.fits" --output cutout.
 cutouts-service 180.0 -30.0 0.1 "s3://example-bucket/file.fits" --output cutout.fits
 cutouts-service 180.0 -30.0 0.1 "s3://example-bucket/file.fits" --s3-endpoint-url "https://objects.example.org" --output cutout.fits
 cutouts-service 180.0 -30.0 0.1 "https://example.com/file.fits" --spectral-min 0.8 --spectral-max 1.0 --spectral-units GHz --output cutout.fits
+cutouts-service 180.0 -30.0 0.1 "/home/path/to/file.fits" --output cutout.fits
 ```
 
-The CLI accepts `ra`, `dec`, `radius`, a remote FITS URL input (`http`, `https`, or `s3`), and a required `--output` path. It uses Astropy to extract a sky cutout from the source FITS file and writes the resulting FITS file to disk. Ensure that the urls are contained in quotes, especially if it contains special characters.
+The CLI accepts `ra`, `dec`, `radius`, a remote FITS URL (`http`, `https`, or `s3`) or path input, and a required `--output` path. It uses Astropy to extract a sky cutout from the source FITS file and writes the resulting FITS file to disk. Ensure that the urls are contained in quotes, especially if it contains special characters.
 
 For S3-compatible object stores, pass `--s3-endpoint-url` to route `s3://` requests to a custom endpoint.
 
@@ -74,13 +75,14 @@ For S3-compatible object stores, pass `--s3-endpoint-url` to route `s3://` reque
 - For the ObjectStore backend, only the first HDU will be accessed as an image. The output file will only have one HDU. The Astropy backend will perform the cutout and copy any secondary HDUs to the local FITS file. The CASAMBM entry in the header will be set to False when using the ObjStore backend, this ensures compatibility with CARTA and other visualisation applications.
 - The current version will only cutout on two physical axes (Right Ascension and Declination) and one spectral axis. A stokes axis will be copied in its entirety. Any other axes will be omitted.
 - The Objstore backend does not support more than one stokes parameter and requires a degenerate stokes axis (length of 1). The Astropy backend will handle this fine.
-- The current version will only work with presigned URLs and public URLs, private s3 objects are currently inaccessible, generate a presigned URL to access these files with `cutouts-service`. This can be done using any of:
+- The current version will only work with local file paths, presigned URLs, and public URLs. Private s3 objects are currently inaccessible, generate a presigned URL to access these files with `cutouts-service`. This can be done using any of:
     ```bash
     # AWS
     aws s3 presign s3://bucket/file.fits --expires-in 604800
     # Rclone
     rclone link alias:bucket/file.fits --expire 3600
     ```
+- Only the Astropy backend will access local files, the ObjectStore backend will require the source file to be remote.
 
 ## Troubleshooting
 - There have been issues with installing this package with pip version less than 25, ensure that pip is upgraded before installing.

@@ -150,3 +150,11 @@ def remote_fits_3d_multitable(
         "url": f"{base_url}/{source_file.name}",
         "header": source_header_3d,
     }
+
+
+@pytest.fixture
+def local_fits_3d_path(tmp_path: Path, source_header_3d: fits.Header):
+    source_file = tmp_path / "source_cube.fits"
+    source_data = np.arange(10 * 2 * 20 * 20, dtype=np.float32).reshape((10, 2, 20, 20))
+    fits.PrimaryHDU(data=source_data, header=source_header_3d).writeto(source_file)
+    return source_file

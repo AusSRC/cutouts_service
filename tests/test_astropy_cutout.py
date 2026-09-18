@@ -140,9 +140,9 @@ def test_open_fits_source_sets_s3_endpoint_url_in_fsspec_kwargs(
     }
 
 
-def test_open_fits_source_rejects_local_files() -> None:
+def test_open_fits_source_nonexistent_files() -> None:
     with (
-        pytest.raises(ValueError, match="remote FITS URL"),
+        pytest.raises(FileNotFoundError, match="does not exist"),
         AstropyCutout(IOConfig("./catalog.fits", "test"), CutoutConfig(1, 1, 1)),
     ):
         pass
@@ -273,3 +273,21 @@ def test_write_multitable_hdu(tmp_path: Path, remote_fits_3d_multitable):
         assert type(f[0]) is fits.hdu.image.PrimaryHDU
         assert type(f[1]) is fits.hdu.table.BinTableHDU
         assert f[0].header.get("CASAMBM", False)
+
+
+def test_local_file_cutout(tmp_path: Path, local_fits_3d_path):
+    output_file = tmp_path / "cutout_cube_local.fits"
+
+    io_config = IOConfig(local_fits_3d_path, output_file)
+    cutout_config = CutoutConfig(180.0, -30.0, 1.0, (1, 1))
+    AstropyCutout(io_config, cutout_config).create_cutout()
+
+    with fits.open(output_file) as hdul:
+        data = hdul[0].data
+        header = hdul[0].header
+
+    assert data.shape == (1, 2, 6, 6)
+    assert header["NAXIS1"] == 6
+    assert header["NAXIS2"] == 6
+    assert header["NAXIS3"] == 2
+    assert header["NAXIS4"] == 1

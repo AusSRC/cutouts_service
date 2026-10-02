@@ -163,7 +163,7 @@ def main(argv: list[str] | None = None):
     if args.log_level == "INFO":
         warnings.filterwarnings("ignore", category=FITSFixedWarning)
 
-    logger.info("\nStarting cutout")
+    logger.debug("\nStarting cutout")
     io_config = IOConfig(args.file, args.output, args.s3_endpoint_url)
     cutout_config = CutoutConfig(
         args.ra,

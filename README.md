@@ -73,15 +73,17 @@ For S3-compatible object stores, pass `--s3-endpoint-url` to route `s3://` reque
 ## Current unsupported features and caveats
 
 - For the ObjectStore backend, only the first HDU will be accessed as an image. The output file will only have one HDU. The Astropy backend will perform the cutout and copy any secondary HDUs to the local FITS file. The CASAMBM entry in the header will be set to False when using the ObjStore backend, this ensures compatibility with CARTA and other visualisation applications.
-- The current version will only cutout on two physical axes (Right Ascension and Declination) and one spectral axis. A stokes axis will be copied in its entirety. Any other axes will be omitted.
-- The Objstore backend does not support more than one stokes parameter and requires a degenerate stokes axis (length of 1). The Astropy backend will handle this fine.
-- The current version will only work with presigned URLs and public URLs, private s3 objects are currently inaccessible, generate a presigned URL to access these files with `cutouts-service`. This can be done using any of:
+- The current version will only cut out on two physical axes (Right Ascension and Declination) and one spectral axis. A Stokes axis will be copied in its entirety. Any other axes will be omitted.
+- The Objstore backend does not support more than one Stokes parameter and requires an absent or degenerate (length 1) Stokes axis. The Astropy backend will handle this fine.
+- The current version will only work with pre-signed URLs and public URLs. Private s3 objects are currently inaccessible. Generate a pre-signed URL to access these files with `cutouts-service`. This can be done via the [CASDA interface](https://research.csiro.au/casda/casda-user-guide/#:~:text=Download%20from%20a%20public%20web%20site), or using either of the following:
     ```bash
     # AWS
     aws s3 presign s3://bucket/file.fits --expires-in 604800
     # Rclone
     rclone link alias:bucket/file.fits --expire 3600
     ```
+ - The current implementation only supports remote cubes (URLs) and does not take cutouts from local files for either Astropy or ObjStore backend implementations.
+ - The ObjStore backend currently has a very large overhead for retrieving data from presigned-URLs. This can be very inefficient for small cutouts.
 
 ## Troubleshooting
 - There have been issues with installing this package with pip version less than 25, ensure that pip is upgraded before installing.

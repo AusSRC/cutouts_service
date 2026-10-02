@@ -317,13 +317,13 @@ class Cutout(ABC):
                     spec_req = [x.to(spec_units) for x in spec_req]
             logger.info(
                 f"\n\nThere are {nchans} channels\n"
-                f"\tThe frequency range is {spec_lims[0]:.3e} -> {spec_lims[1]:.3e} {spec_units}\n"
+                f"The frequency range is {spec_lims[0]:.3e} -> {spec_lims[1]:.3e} {spec_units}\n"
             )
             if spec_req is None:
-                logger.info("All channels have been requested")
+                logger.info("\nAll channels have been requested")
             else:
                 logger.info(
-                    f"\tYour request is from channel {co_c.spectral_range[0]} ({spec_req[0]:.3e}) to {co_c.spectral_range[1]} ({spec_req[1]:.3e})\n"
+                    f"\n\tYour request is from channel {co_c.spectral_range[0]} ({spec_req[0]:.3e}) to {co_c.spectral_range[1]} ({spec_req[1]:.3e})\n"
                 )
         if stokes_axis is not None:
             stokes_size = wcs.array_shape[::-1][stokes_axis]
@@ -350,7 +350,7 @@ class Cutout(ABC):
         fits.Header
             The adjusted header to be written with the fits data
         """
-        logger.info(
+        logger.debug(
             f"Building cutout header source_naxis={int(self.source_header.get('NAXIS', len(shape)))} "
             f"shape={tuple(shape)} slices={slices!r} section_dtype={getattr(section_dtype, 'name', str(section_dtype))}"
         )
@@ -387,17 +387,17 @@ class Cutout(ABC):
             if crpix_key in self.source_header:
                 old_crpix = float(self.source_header[crpix_key])
                 header[crpix_key] = float(self.source_header[crpix_key]) - start
-                logger.info(
+                logger.debug(
                     f"Updated WCS reference pixel axis={fits_axis} slice_start={start} "
                     f"slice_stop={stop} old_crpix={old_crpix} new_crpix={float(header[crpix_key])}"
                 )
 
-            logger.info(
+            logger.debug(
                 f"Updated axis length axis={fits_axis} old_naxis={previous_naxis} "
                 f"new_naxis={int(header[naxis_key])} slice_start={start} slice_stop={stop}"
             )
 
-        logger.info(
+        logger.debug(
             f"Cutout header build complete naxis={int(header['NAXIS'])} "
             f"shape={tuple(shape)} bitpix={int(header['BITPIX'])}"
         )
@@ -417,7 +417,7 @@ class Cutout(ABC):
             The adjusted header
         """
         if header.get("CASAMBM", False):
-            logger.info("Setting CASAMBM to False, this is not present in the file")
+            logger.debug("Setting CASAMBM to False, this is not present in the file")
             header.set("CASAMBM", False)
         return header
 

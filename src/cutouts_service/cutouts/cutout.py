@@ -3,6 +3,7 @@
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from math import isnan
 from pathlib import Path
 
 import numpy as np
@@ -30,6 +31,10 @@ SPECTRAL_UNITS = {
     "MHz": u.MHz,
     "GHz": u.GHz,
 }
+
+
+class NANCoordinateError(Exception):
+    pass
 
 
 @dataclass
@@ -203,6 +208,12 @@ class Cutout(ABC):
         ra_dec_max = position.spherical_offsets_by(size / 2, size / 2)
         x0, y0 = wcs.celestial.world_to_pixel(ra_dec_min)
         x1, y1 = wcs.celestial.world_to_pixel(ra_dec_max)
+        if any(isnan(corner) for corner in (x0, x1, y0, y1)):
+            logger.error("Bad coordinate, running dry run")
+            self._get_cube_details()
+            raise NANCoordinateError(
+                "The given coordinate is too far from the cube centre"
+            )
         x_min = np.floor(min(x0, x1))
         x_max = np.ceil(max(x0, x1))
         y_min = np.floor(min(y0, y1))

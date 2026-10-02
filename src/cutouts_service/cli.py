@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import sys
 
 from astropy import units as u
 
@@ -9,6 +10,7 @@ from cutouts_service.cutouts import (
     AstropyCutout,
     CutoutConfig,
     IOConfig,
+    NANCoordinateError,
     ObjStoreCutout,
     Options,
 )
@@ -170,6 +172,11 @@ def main(argv: list[str] | None = None):
         raise ValueError(
             f"The --backend argument must be one of {', '.join(BACKENDS.keys())}"
         )
+    except NANCoordinateError:
+        logger.error(
+            "The cutout could not complete as the coordinates were too far from the cube centre. Please revise the coordinates and try again."
+        )
+        sys.exit()
 
     output_path = cutout.create_cutout()
     if args.dry_run:

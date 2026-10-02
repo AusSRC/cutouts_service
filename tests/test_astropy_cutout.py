@@ -5,7 +5,12 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from cutouts_service.cutouts import AstropyCutout, CutoutConfig, IOConfig
+from cutouts_service.cutouts import (
+    AstropyCutout,
+    CutoutConfig,
+    IOConfig,
+    NANCoordinateError,
+)
 
 
 def test_write_cutout_creates_output_file(tmp_path: Path, remote_fits_2d):
@@ -273,3 +278,13 @@ def test_write_multitable_hdu(tmp_path: Path, remote_fits_3d_multitable):
         assert type(f[0]) is fits.hdu.image.PrimaryHDU
         assert type(f[1]) is fits.hdu.table.BinTableHDU
         assert f[0].header.get("CASAMBM", False)
+
+
+def test_fail_on_bad_coordinates(tmp_path: Path, remote_fits_3d):
+    output_file = tmp_path / "cutout_cube.fits"
+    source_url = remote_fits_3d["url"]
+
+    io_config = IOConfig(source_url, output_file)
+    cutout_config = CutoutConfig(0.0, 50.0, 1.0, (1, 1))
+    with pytest.raises(NANCoordinateError):
+        AstropyCutout(io_config, cutout_config).create_cutout()

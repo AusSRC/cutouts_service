@@ -4,6 +4,7 @@ from cutouts_service.cutouts.cutout import (  # noqa : I001
     ImageLikeHDU,
     IOConfig,
     Options,
+    NANCoordinateError,
 )
 from cutouts_service.cutouts.astropy_cutout import AstropyCutout
 
@@ -15,6 +16,7 @@ __all__ = [
     "CutoutConfig",
     "IOConfig",
     "ImageLikeHDU",
+    "NANCoordinateError",
     "ObjStoreCutout",
     "Options",
 ]

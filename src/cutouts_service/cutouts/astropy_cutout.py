@@ -79,7 +79,7 @@ class AstropyCutout(Cutout):
         ValueError
             If there was no ImageHDU found within the fits file
         """
-        logger.info(f"Searching for first image HDU with data hdu_count={len(hdul)}")
+        logger.debug(f"Searching for first image HDU with data hdu_count={len(hdul)}")
         for index, hdu in enumerate(hdul):
             if not bool(getattr(hdu, "is_image", False)):
                 continue
@@ -93,7 +93,7 @@ class AstropyCutout(Cutout):
             if any(axis_len <= 0 for axis_len in source_shape):
                 continue
 
-            logger.info(
+            logger.debug(
                 f"Selected image HDU hdu_index={index} hdu_name={getattr(hdu, 'name', 'UNKNOWN')} "
                 f"data_shape={source_shape} data_ndim={len(source_shape)}"
             )
@@ -126,7 +126,7 @@ class AstropyCutout(Cutout):
         header = self.source_header
         source_shape = self.fits_shape
 
-        logger.info(
+        logger.debug(
             f"Starting spatial cutout calculation ra_deg={ra} dec_deg={dec} radius_deg={radius}"
         )
 
@@ -154,8 +154,8 @@ class AstropyCutout(Cutout):
                 slices.append(slice(None))
 
         slices = tuple(slices[::-1])
-        logger.info("pixel slice calculated: %s", slices)
-        logger.info("performing slice")
+        logger.debug("pixel slice calculated: %s", slices)
+        logger.debug("performing slice")
 
         data = image_hdu.section[slices]
 
@@ -187,7 +187,7 @@ class AstropyCutout(Cutout):
         s3_endpoint_url = io_c.s3_endpoint_url
 
         output_path = Path(io_c.output_path)
-        logger.info(
+        logger.debug(
             f"Preparing cutout request source={source!s} output_path={output_path!s} "
             f"ra_deg={co_c.ra} dec_deg={co_c.dec} radius_deg={co_c.radius} s3_endpoint_url={s3_endpoint_url} "
             f"spectral_start={co_c.spectral_range[0]} spectral_stop={co_c.spectral_range[1]} spectral_units={co_c.spectral_units} overwrite={overwrite}"
@@ -195,7 +195,7 @@ class AstropyCutout(Cutout):
         if output_path.exists() and not overwrite:
             raise FileExistsError(f"Output file already exists: {output_path}")
 
-        logger.info("Opening FITS source")
+        logger.debug("Opening FITS source")
 
         self._compute_pixel_indices(self.source_header, self.cutout_config)
         if not self.check_cutout_fit():
@@ -210,18 +210,18 @@ class AstropyCutout(Cutout):
             self._get_cube_details()
         else:
             with self._open_fits_source(self.io_config) as hdul:
-                logger.info(f"Opened FITS source hdu_count={len(hdul)}")
+                logger.debug(f"Opened FITS source hdu_count={len(hdul)}")
                 image_hdu = self._find_image_hdu(hdul)
                 data, header, _ = self._build_cutout(image_hdu)
-            logger.info(
+            logger.debug(
                 f"Ensuring output directory exists output_directory={output_path.parent!s}"
             )
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            logger.info(
+            logger.debug(
                 f"Writing cutout to output FITS output_path={output_path!s} output_shape={tuple(data.shape)}"
             )
             self.write_fits_data(data, header, output_path, overwrite)
-            logger.info(f"Cutout write complete output_path={output_path!s}")
+            logger.debug(f"Cutout write complete output_path={output_path!s}")
         return output_path
 
     @contextmanager
@@ -246,7 +246,7 @@ class AstropyCutout(Cutout):
             The returned fits file handle is not an HDUList
         """
         io_c = io_config
-        logger.info(f"Opening FITS source source={io_c.source!s}")
+        logger.debug(f"Opening FITS source source={io_c.source!s}")
         if not is_remote_source(io_c.source):
             logger.error(f"Rejected non-remote FITS source source={io_c.source!s}")
             raise ValueError("A remote FITS URL is required")
@@ -260,7 +260,7 @@ class AstropyCutout(Cutout):
                 fsspec_kwargs["client_kwargs"] = {"endpoint_url": io_c.s3_endpoint_url}
             open_kwargs["fsspec_kwargs"] = fsspec_kwargs
 
-        logger.info(
+        logger.debug(
             f"Calling astropy.io.fits.open source={io_c.source!s} open_kwargs={open_kwargs}"
         )
 
@@ -270,7 +270,7 @@ class AstropyCutout(Cutout):
             except TypeError:
                 hdu_count = None
 
-            logger.info(
+            logger.debug(
                 f"FITS source opened source={io_c.source!s} hdu_count={hdu_count}"
             )
             yield handle

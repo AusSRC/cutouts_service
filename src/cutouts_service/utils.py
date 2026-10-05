@@ -26,14 +26,14 @@ def is_remote_source(source: str | Path) -> bool:
     bool
         True if URL, False if local file
     """
-    logger.info(f"Checking if source is remote source={source}")
+    logger.debug(f"Checking if source is remote source={source}")
     parsed = urlparse(str(source))
 
     # Object-storage URLs are valid remote sources even when they are not HTTP URLs.
     if parsed.scheme == "s3":
         result = bool(parsed.netloc)
-        logger.info(f"Remote source check (s3) source={source} is_remote={result}")
+        logger.debug(f"Remote source check (s3) source={source} is_remote={result}")
         return result
     result = bool(validators.url(source))
-    logger.info(f"Remote source check source={source} is_remote={result}")
+    logger.debug(f"Remote source check source={source} is_remote={result}")
     return result

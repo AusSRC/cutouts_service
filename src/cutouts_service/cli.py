@@ -107,6 +107,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="astropy",
         help="The backend to use to perform the cutout. The two supported options are 'astropy' and 'objstore'. Default is 'astropy'.",
     )
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        action="store_true",
+        help="Allow overwriting the output file",
+    )
     return parser
 
 
@@ -117,8 +123,8 @@ def main(argv: list[str] | None = None):
     -------
     The service can be run using::
 
-        cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-unit {channels,Hz,KHz,MHz,GHz}] [--spectral-min SPECTRAL_MIN]
-                       [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT [--backend {astropy,objstore}]
+        cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-units {channels,Hz,kHz,MHz,GHz}] [--spectral-min SPECTRAL_MIN]
+                       [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT [--backend {astropy,objstore}] [-o]
                        ra dec radius file
 
     Parameters
@@ -180,7 +186,7 @@ def main(argv: list[str] | None = None):
             f"The --backend argument must be one of {', '.join(BACKENDS.keys())}"
         )
 
-    output_path = cutout.create_cutout()
+    output_path = cutout.create_cutout(args.overwrite)
     if args.dry_run:
         logger.info("\nDry-run performed")
     else:

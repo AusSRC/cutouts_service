@@ -31,10 +31,7 @@ If you installed the development dependencies you can run `make test` to ensure 
 The cutouts service is run from a single command:
 
 ```bash
-usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-                       [--spectral-units {channels,Hz,kHz,MHz,GHz}] [--spectral-min SPECTRAL_MIN] [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT
-                       [--backend {astropy,objstore}]
-                       ra dec radius file
+usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-units {channels,Hz,kHz,MHz,GHz}] [--spectral-min SPECTRAL_MIN] [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT [--backend {astropy,objstore}] [-o] ra dec radius file
 ```
 ### Where:
 | Positional Argument | Description |
@@ -55,6 +52,7 @@ usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DE
 | --dry-run, -n | |       perform a dry-run, where the selected fits cube will be queried for extent and size. |
 | --output | OUTPUT filename |      Output cutout FITS file |
 | --backend | One of 'astropy' or 'objstore' | The backend to use to perform the cutout. The two supported options are 'astropy' and 'objstore'. Default is 'astropy'. |
+| --overwrite, -o | | Allow overwriting the output file |
 
 ### Example
 

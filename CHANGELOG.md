@@ -5,12 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## Unreleased - 2026-09-02
+
+### Changed
+- Generalised internal coordinate usage
+- Updated Readme to represent generalised coordinates
+- Cleaned up the logging
 
 ### Added
+- Added support for galactic coordinate cubes
+- Added option to set input coordinates as galactic
+- Added tests for the above cases
+- Added example to readme
+- Added conversion in dry-run if the input coordinates are in a different frame to the cube's frame
 - Added an ovewrite flag to the CLI
-### Changed
-- Cleaned up the logging
 
 ## [1.0.4] - 2026-07-30
 

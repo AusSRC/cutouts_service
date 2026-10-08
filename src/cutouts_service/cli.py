@@ -29,6 +29,7 @@ ARCMIN_PER_DEG = 60.0
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
 BACKENDS = {"astropy": AstropyCutout, "objstore": ObjStoreCutout}
+COORDINATE_SYSTEMS = {"equatorial": ("RA", "DEC"), "galactic": ("GLON", "GLAT")}
 
 
 def configure_logging(level_name: str):
@@ -60,10 +61,18 @@ def build_parser() -> argparse.ArgumentParser:
     """
 
     parser = argparse.ArgumentParser(description="Prepare a cutout request")
-    parser.add_argument("ra", type=float, help="Right ascension in decimal degrees")
-    parser.add_argument("dec", type=float, help="Declination in decimal degrees")
-    parser.add_argument("radius", type=float, help="Cutout radius in arcminutes ( Note: This returns a square cutout, not circular )")
-    parser.add_argument("file", help="Input URL to remote source file")
+    parser.add_argument(
+        "longitude",
+        type=float,
+        help="The longitude of the centre of the cutout, if the angular units are equatorial, this would be the Right Ascension",
+    )
+    parser.add_argument(
+        "latitude",
+        type=float,
+        help="The latitude of the centre ofthe cutout, if the angular units are equatorial, this would be the Declination",
+    )
+    parser.add_argument("radius", type=float, help="Cutout radius in arcminutes")
+    parser.add_argument("file", help="Input file path or URL")
     parser.add_argument(
         "--s3-endpoint-url",
         default=None,
@@ -105,7 +114,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--backend",
         choices=BACKENDS.keys(),
         default="astropy",
+        type=str.lower,
         help="The backend to use to perform the cutout. The two supported options are 'astropy' and 'objstore'. Default is 'astropy'.",
+    )
+    parser.add_argument(
+        "--coordinate-system",
+        choices=COORDINATE_SYSTEMS.keys(),
+        default="Equatorial",
+        type=str.lower,
+        help="The coordinate system to use for the cutout input",
     )
     parser.add_argument(
         "-o",
@@ -123,9 +140,9 @@ def main(argv: list[str] | None = None):
     -------
     The service can be run using::
 
-        cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-units {channels,Hz,kHz,MHz,GHz}] [--spectral-min SPECTRAL_MIN]
-                       [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT [--backend {astropy,objstore}] [-o]
-                       ra dec radius file
+        cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-units {channels,Hz,kHz,MHz,GHz}]
+                       [--spectral-min SPECTRAL_MIN] [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT [--backend {astropy,objstore}] [--coordinate-system {Equatorial,Galactic}] [-o]
+                       longitude latitude radius file
 
     Parameters
     ----------
@@ -159,8 +176,8 @@ def main(argv: list[str] | None = None):
 
     logger.info(
         f"\nReceived cutout request:\n"
-        f"\tRA: {args.ra} deg\n"
-        f"\tDec: {args.dec} deg\n"
+        f"\tRA: {args.longitude} deg\n"
+        f"\tDec: {args.latitude} deg\n"
         f"\tRadius: {args.radius} arcmin\n"
         f"\tSource: {args.file}\n"
         f"\tOutput: {args.output}\n"
@@ -172,11 +189,12 @@ def main(argv: list[str] | None = None):
     logger.debug("\nStarting cutout")
     io_config = IOConfig(args.file, args.output, args.s3_endpoint_url)
     cutout_config = CutoutConfig(
-        args.ra,
-        args.dec,
+        args.longitude,
+        args.latitude,
         radius_deg,
         (args.spectral_min, args.spectral_max),
         args.spectral_units,
+        COORDINATE_SYSTEMS[args.coordinate_system],
     )
     options = Options(args.dry_run)
     try:

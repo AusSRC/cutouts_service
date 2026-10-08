@@ -2,8 +2,10 @@
 
 import argparse
 import logging
+import warnings
 
 from astropy import units as u
+from astropy.wcs import FITSFixedWarning
 
 from cutouts_service.cutouts import (
     AstropyCutout,
@@ -80,6 +82,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--log-level",
         default="INFO",
         choices=LOG_LEVELS,
+        type=str.upper,
         help="Logging verbosity level (default: INFO)",
     )
     parser.add_argument(
@@ -121,6 +124,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=str.lower,
         help="The coordinate system to use for the cutout input",
     )
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        action="store_true",
+        help="Allow overwriting the output file",
+    )
     return parser
 
 
@@ -132,7 +141,7 @@ def main(argv: list[str] | None = None):
     The service can be run using::
 
         cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-units {channels,Hz,kHz,MHz,GHz}]
-                       [--spectral-min SPECTRAL_MIN] [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT [--backend {astropy,objstore}] [--coordinate-system {Equatorial,Galactic}]
+                       [--spectral-min SPECTRAL_MIN] [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT [--backend {astropy,objstore}] [--coordinate-system {Equatorial,Galactic}] [-o]
                        longitude latitude radius file
 
     Parameters
@@ -150,7 +159,7 @@ def main(argv: list[str] | None = None):
     args = build_parser().parse_args(argv)
     configure_logging(args.log_level)
 
-    logger.info("Parsing CLI arguments")
+    logger.debug("Parsing CLI arguments")
     radius_deg = args.radius / ARCMIN_PER_DEG
     if (args.spectral_min is None) != (args.spectral_max is None):
         raise ValueError(
@@ -166,12 +175,18 @@ def main(argv: list[str] | None = None):
         )
 
     logger.info(
-        f"Received cutout request ra_deg={args.longitude} dec_deg={args.latitude} "
-        f"radius_arcmin={args.radius} radius_deg={radius_deg} source={args.file} output_path={args.output} "
-        f"spectral_min={args.spectral_min} spectral_max={args.spectral_max} spectral_units={args.spectral_units}"
+        f"\nReceived cutout request:\n"
+        f"\tRA: {args.longitude} deg\n"
+        f"\tDec: {args.latitude} deg\n"
+        f"\tRadius: {args.radius} arcmin\n"
+        f"\tSource: {args.file}\n"
+        f"\tOutput: {args.output}\n"
+        f"\tSpectral Range: {args.spectral_min} - {args.spectral_max} {args.spectral_units}"
     )
+    if args.log_level == "INFO":
+        warnings.filterwarnings("ignore", category=FITSFixedWarning)
 
-    logger.info("Starting cutout write")
+    logger.debug("\nStarting cutout")
     io_config = IOConfig(args.file, args.output, args.s3_endpoint_url)
     cutout_config = CutoutConfig(
         args.longitude,
@@ -189,8 +204,8 @@ def main(argv: list[str] | None = None):
             f"The --backend argument must be one of {', '.join(BACKENDS.keys())}"
         )
 
-    output_path = cutout.create_cutout()
+    output_path = cutout.create_cutout(args.overwrite)
     if args.dry_run:
-        logger.info("Dry-run performed")
+        logger.info("\nDry-run performed")
     else:
-        logger.info(f"Cutout command finished successfully output_path={output_path}")
+        logger.info(f"\nCutout command finished successfully output_path={output_path}")

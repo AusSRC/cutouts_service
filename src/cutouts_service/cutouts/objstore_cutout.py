@@ -89,7 +89,7 @@ class ObjStoreCutout(Cutout):
         spectral_range = self.cutout_config.spectral_range
         source_shape = self.fits_shape
 
-        logger.info(
+        logger.debug(
             f"Starting spatial cutout calculation long_deg={longitude} lat_deg={latitude} radius_deg={radius}"
         )
 
@@ -176,7 +176,7 @@ class ObjStoreCutout(Cutout):
         s3_endpoint_url = io_c.s3_endpoint_url
 
         output_path = Path(io_c.output_path)
-        logger.info(
+        logger.debug(
             f"Preparing cutout request source={source!s} output_path={output_path!s} "
             f"long_deg={co_c.longitude} lat_deg={co_c.latitude} radius_deg={co_c.radius} s3_endpoint_url={s3_endpoint_url} "
             f"spectral_start={co_c.spectral_range[0]} spectral_stop={co_c.spectral_range[1]} spectral_units={co_c.spectral_units} overwrite={overwrite}"
@@ -184,7 +184,7 @@ class ObjStoreCutout(Cutout):
         if output_path.exists() and not overwrite:
             raise FileExistsError(f"Output file already exists: {output_path}")
 
-        logger.info("Opening FITS source")
+        logger.debug("Opening FITS source")
 
         if not self.check_cutout_fit():
             self._get_cube_details()
@@ -198,15 +198,15 @@ class ObjStoreCutout(Cutout):
             self._get_cube_details()
         else:
             data, header = self._build_cutout(str(source))
-            logger.info(
+            logger.debug(
                 f"Ensuring output directory exists output_directory={output_path.parent!s}"
             )
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            logger.info(
+            logger.debug(
                 f"Writing cutout to output FITS output_path={output_path!s} output_shape={tuple(data.shape)}"
             )
             fits.PrimaryHDU(data=data, header=header).writeto(
                 output_path, overwrite=overwrite
             )
-            logger.info(f"Cutout write complete output_path={output_path!s}")
+            logger.debug(f"Cutout write complete output_path={output_path!s}")
         return output_path

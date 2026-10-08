@@ -32,7 +32,7 @@ The cutouts service is run from a single command:
 
 ```bash
 usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--spectral-units {channels,Hz,kHz,MHz,GHz}]
-                       [--spectral-min SPECTRAL_MIN] [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT [--backend {astropy,objstore}] [--coordinate-system {Equatorial,Galactic}]
+                       [--spectral-min SPECTRAL_MIN] [--spectral-max SPECTRAL_MAX] [-n] --output OUTPUT [--backend {astropy,objstore}] [--coordinate-system {Equatorial,Galactic}] [-o]
                        longitude latitude radius file
 ```
 ### Where:
@@ -55,6 +55,7 @@ usage: cutouts-service [-h] [--s3-endpoint-url S3_ENDPOINT_URL] [--log-level {DE
 | --output | OUTPUT filename |      Output cutout FITS file |
 | --backend | One of 'astropy' or 'objstore' | The backend to use to perform the cutout. The two supported options are 'astropy' and 'objstore'. Default is 'astropy'. |
 |--coordinate-system |  One of 'equatorial' or 'galactic' | The coordinate system to use for the cutout input |
+| --overwrite, -o | | Allow overwriting the output file |
 
 ### Example
 

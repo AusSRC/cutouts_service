@@ -215,11 +215,11 @@ def test_get_cube_details(remote_fits_3d, caplog) -> None:
     )
     assert (
         func_messages[1].message
-        == "\n\nThere are 2 channels\n\tThe frequency range is 0.000e+00 -> 2.000e+00 Hz\n"
+        == "\n\nThere are 2 channels\nThe frequency range is 0.000e+00 -> 2.000e+00 Hz\n"
     )
     assert (
         func_messages[2].message
-        == "\tYour request is from channel 1 (1.000e+00 Hz) to 1 (1.000e+00 Hz)\n"
+        == "\n\tYour request is from channel 1 (1.000e+00 Hz) to 1 (1.000e+00 Hz)\n"
     )
     assert (
         func_messages[3].message
@@ -245,7 +245,7 @@ def test_get_cube_details_spectral_units(remote_fits_3d, caplog) -> None:
                 func_messages.append(record)
         assert (
             func_messages[2].message
-            == "\tYour request is from channel 0 (0.000e+00 Hz) to 1 (1.000e+00 Hz)\n"
+            == "\n\tYour request is from channel 0 (0.000e+00 Hz) to 1 (1.000e+00 Hz)\n"
         )
 
 

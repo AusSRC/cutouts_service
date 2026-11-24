@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Added an ovewrite flag to the CLI
 ### Changed
+- Cleaned up the logging
 - Enabled local files to be used as input
 
 ## [1.0.4] - 2026-07-30

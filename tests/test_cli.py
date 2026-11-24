@@ -160,3 +160,58 @@ def test_unrecognised_spectral_units(tmp_path: Path, remote_fits_2d) -> None:
     error_out = next(tb for tb in e.traceback if tb.name == "error").locals["message"]
     if "argument --spectral-units: invalid choice: 'Gz'" not in error_out:
         raise AssertionError
+
+
+def test_main_fails_on_overwrite_attempt(tmp_path: Path, remote_fits_2d) -> None:
+    source_url = remote_fits_2d["url"]
+    output_file = tmp_path / "cutout.fits"
+
+    main(
+        [
+            "180.0",
+            "-30.0",
+            "30.0",
+            source_url,
+            "--output",
+            str(output_file),
+        ]
+    )
+
+    with raises(FileExistsError):
+        main(
+            [
+                "180.0",
+                "-30.0",
+                "30.0",
+                source_url,
+                "--output",
+                str(output_file),
+            ]
+        )
+
+
+def test_main_overwrite(tmp_path: Path, remote_fits_2d) -> None:
+    source_url = remote_fits_2d["url"]
+    output_file = tmp_path / "cutout.fits"
+
+    main(
+        [
+            "180.0",
+            "-30.0",
+            "30.0",
+            source_url,
+            "--output",
+            str(output_file),
+        ]
+    )
+    main(
+        [
+            "180.0",
+            "-30.0",
+            "30.0",
+            source_url,
+            "--output",
+            str(output_file),
+            "--overwrite",
+        ]
+    )

@@ -246,19 +246,24 @@ class AstropyCutout(Cutout):
             The returned fits file handle is not an HDUList
         """
         io_c = io_config
-        logger.debug(f"Opening FITS source source={io_c.source!s}")
+        logger.info(f"Opening FITS source source={io_c.source!s}")
+        open_kwargs: dict[str, Any] = {"lazy_load_hdus": True}
         if not is_remote_source(io_c.source):
-            logger.error(f"Rejected non-remote FITS source source={io_c.source!s}")
-            raise ValueError("A remote FITS URL is required")
-
+            logger.debug("FITS file is not remote, checking if file exists")
+            if not Path(io_c.source).exists():
+                logger.error(f"The source file does not exist at {io_c.source!s}")
+                raise FileNotFoundError("The source file does not exists")
+        else:
+            open_kwargs["use_fsspec"] = True
+            parsed_source = urlparse(str(io_c.source))
+            if parsed_source.scheme == "s3":
+                fsspec_kwargs: dict[str, object] = {"anon": True}
+                if io_c.s3_endpoint_url:
+                    fsspec_kwargs["client_kwargs"] = {
+                        "endpoint_url": io_c.s3_endpoint_url
+                    }
+                open_kwargs["fsspec_kwargs"] = fsspec_kwargs
         open_args = (io_c.source,)
-        open_kwargs: dict[str, Any] = {"use_fsspec": True, "lazy_load_hdus": True}
-        parsed_source = urlparse(str(io_c.source))
-        if parsed_source.scheme == "s3":
-            fsspec_kwargs: dict[str, object] = {"anon": True}
-            if io_c.s3_endpoint_url:
-                fsspec_kwargs["client_kwargs"] = {"endpoint_url": io_c.s3_endpoint_url}
-            open_kwargs["fsspec_kwargs"] = fsspec_kwargs
 
         logger.debug(
             f"Calling astropy.io.fits.open source={io_c.source!s} open_kwargs={open_kwargs}"
